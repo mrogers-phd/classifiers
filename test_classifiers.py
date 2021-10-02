@@ -13,24 +13,24 @@ from sklearn_utils import *
 C_VALUES    = [10**x for x in range(-3,1)]
 CVAL_STRING = ','.join(['%.3g'%x for x in C_VALUES])
 
-# gamma values for RBF kernels
+# Gamma values for RBF kernels
 G_VALUES    = [10**x for x in range(-3,1)]
 GVAL_STRING = ','.join(['%.3g'%x for x in G_VALUES])
 
-# # trees in random forest
+# Trees in random forest (RF, ET, GB models)
 T_VALUES    = [10**x for x in range(2,4)]
 TVAL_STRING = ','.join(['%d'%x for x in T_VALUES])
 
 ALL_MODELS  = 'ALL'
 
-MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE, EXTRA_TREE, ADABOOST, GRADIENT_BOOST, PLATT_BOOST, LOGREG] \
-       = ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient','Platt-boost','logistic']
-MODEL_CODES = [LS_CODE, RS_CODE, RF_CODE, NB_CODE, DT_CODE, ET_CODE, AB_CODE, GB_CODE, PB_CODE, LR_CODE] = 'LRFNDEAGPO'
+MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE, EXTRA_TREE, ADABOOST, GRADIENT_BOOST, LOGREG] \
+       = ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient','logistic']
+MODEL_CODES = [LS_CODE, RS_CODE, RF_CODE, NB_CODE, DT_CODE, ET_CODE, AB_CODE, GB_CODE, LR_CODE] = 'LRFNDEAGO'
 MODEL_NAME = dict(zip(MODEL_CODES,MODELS))
-DEFAULT_CODE = PB_CODE
+DEFAULT_CODE = GB_CODE
 
 
-def model_factory(modelCode, **args) :
+def model_factory(modelCode, **args):
     """Main method for creating a list of models for testing,
     based on a model code and its relevant parameters."""
     cvalues   = args.get('cvalues', C_VALUES)
@@ -44,68 +44,68 @@ def model_factory(modelCode, **args) :
 
     intTrees  = [int(x) for x in trees]
     modelType = MODEL_NAME[modelCode]
-    if verbose : sys.stderr.write('creating %s model for %s\n' % (modelType, modelCode))
+    if verbose: sys.stderr.write('creating %s model for %s\n' % (modelType, modelCode))
     names     = []
     models    = []
-    if modelType == LINEAR_SVM :
-        for cval in cvalues :
+    if modelType == LINEAR_SVM:
+        for cval in cvalues:
             names.append('Linear SVM (C=%.5g)' % cval)
             models.append(svm.SVC(kernel='linear', C=cval, probability=True))
-    elif modelType == RBF_SVM :
-        for gamma in gvalues :
+    elif modelType == RBF_SVM:
+        for gamma in gvalues:
             names.append('RBF SVM (gamma=%.5g, C=1)' % gamma)
             models.append(svm.SVC(kernel='rbf', C=1, gamma=gamma, probability=True))
-    elif modelType == RANDOM_FOREST :
-        for p in intTrees  :
-            if bootstrap :
+    elif modelType == RANDOM_FOREST:
+        for p in intTrees:
+            if bootstrap:
                 names.append('Random forest (N=%d, %s, bootstrap)' % (p, squal))
-            else :
+            else:
                 names.append('Random forest (N=%d, %s)' % (p, squal))
             models.append(ensemble.RandomForestClassifier(n_estimators=p,
                                            bootstrap=bootstrap,
                                            criterion=squal,
                                            random_state=1,
                                            n_jobs=nprocs))
-    elif modelType == EXTRA_TREE :
-        for p in intTrees  :
-            if bootstrap :
+    elif modelType == EXTRA_TREE:
+        for p in intTrees:
+            if bootstrap:
                 names.append('Extra trees (N=%d, %s, bootstrap)' % (p, squal))
-            else :
+            else:
                 names.append('Extra trees (N=%d, %s)' % (p, squal))
             models.append(ensemble.ExtraTreesClassifier(n_estimators=p,
                                           bootstrap=bootstrap,
                                           criterion=squal,
                                           random_state=1,
                                           n_jobs=nprocs))
-    elif modelType == ADABOOST :
-        for p in intTrees  :
+    elif modelType == ADABOOST:
+        for p in intTrees:
             names.append('Adaboost (N=%d)' % p)
             models.append(ensemble.AdaBoostClassifier(n_estimators=p, random_state=1))
-    elif modelType == GRADIENT_BOOST :
-        for p in intTrees  :      # number of boosting stages
+    elif modelType == GRADIENT_BOOST:
+        for p in intTrees:      # number of boosting stages
             names.append('Gradient boosting (N=%d)' % p)
             models.append(ensemble.GradientBoostingClassifier(n_estimators=p,max_depth=depth,subsample=0.5))
-    elif modelType == NAIVE_BAYES :
+    elif modelType == NAIVE_BAYES:
         names.append('Naive Bayes')
         models.append(naive_bayes.GaussianNB())
-    elif modelType == DECISION_TREE :
+    elif modelType == DECISION_TREE:
         names.append('Decision Tree')
         models.append(tree.DecisionTreeClassifier(random_state=1))
 
     return names, models
 
-def run_iteration(iterId) :
+def run_iteration(iterId):
     """"Multiprocessing-friendly method that runs a single iteration
     of cross-validation for the current global model.  NB: iteration
     number indexes into the random number seed for this iteration."""
     return runCV(MODEL, DATA.features, DATA.labels, nfolds=opts.nfolds, shuffle=True, random_state=seeds[iterId])
 
-def roc_name(s) :
+def roc_name(s):
     """Converts a model name into an output file name, for ROC curves."""
     # e.g., 'Random forest (N=1000, gini, bootstrap)'
     result = s.replace(' ','_')
     result = result.replace('.','p')
-    for c in '(,=)' :
+    for c in '(,=)':
         result = result.replace(c,'')
     return result + '_roc.csv'
 
@@ -145,22 +145,22 @@ parser.add_option_group(rfopt)
 opts, args = parser.parse_args(sys.argv[1:])
 
 MIN_ARGS = 1
-if len(args) != MIN_ARGS :
+if len(args) != MIN_ARGS:
     parser.print_help()
-    if args : sys.stderr.write('\nExpected %d parameters; received %d:\n  %s\n' % (MIN_ARGS, len(args), '\n  '.join(args)))
+    if args: sys.stderr.write('\nExpected %d parameters; received %d:\n  %s\n' % (MIN_ARGS, len(args), '\n  '.join(args)))
     sys.exit(1)
 
-if opts.models.upper() == ALL_MODELS :
+if opts.models.upper() == ALL_MODELS:
     opts.models = MODEL_CODES
 
 mCodes  = set(opts.models.upper())
 invalid = mCodes - set(MODEL_CODES)
-if invalid :
+if invalid:
     parser.print_help()
     sys.stderr.write('\nInvalid model codes: %s\n' % ','.join(invalid))
     sys.exit(1)
 
-if opts.nprocs > multiprocessing.cpu_count() :
+if opts.nprocs > multiprocessing.cpu_count():
     sys.stderr.write('You asked for %d processors, but there are only %d available.\n' % (opts.nprocs, multiprocessing.cpu_count()))
     sys.exit(1)
 
@@ -180,68 +180,68 @@ seeds  = [random.randint(0,1000) for r in xrange(opts.niter)]
 #DATA = loadCSV(csvFile, createScaler=opts.std)
 DATA = loadCSV(csvFile, verbose=opts.verbose)
 
-if opts.verbose :
+if opts.verbose:
     sys.stderr.write('Data: %s\n' % DATA) 
     sys.stderr.write('Model codes: %s\n' % ','.join(mCodes))
 
 # set the method(s) to test ...
 Names  = []
 models = []
-for c in mCodes :
+for c in mCodes:
     n, m = model_factory(c, cvalues=cValues, gamma=gValues, trees=tValues,
                          bootstrap=opts.bootstrap,
                          splitqual=opts.squal,
                          depth=opts.depth,
                          nprocs=opts.nprocs,
                          verbose=opts.verbose)
-    if opts.verbose :
+    if opts.verbose:
         sys.stderr.write('adding model %s\n' % n)
     Names.extend(n)
     models.extend(m)
 
-if opts.verbose :
+if opts.verbose:
     sys.stderr.write('Testing the following models:\n')
-    for e in Names :
+    for e in Names:
         sys.stderr.write('  %s\n' % e)
 
 Scores = []
 Stdev  = []
-for k in range(len(Names)) :
+for k in range(len(Names)):
     name  = Names[k]
     MODEL = models[k]
-    if opts.verbose : sys.stderr.write('%s\n' % timeString(name))
+    if opts.verbose: sys.stderr.write('%s\n' % timeString(name))
     meanScores = []
     iterRange = range(opts.niter)
-    if opts.nprocs > 1 :
+    if opts.nprocs > 1:
         MP      = multiprocessing.Pool(processes=opts.nprocs)
         results = MP.map(run_iteration, iterRange)
         MP.terminate()
-    else :
+    else:
         results = map(run_iteration, iterRange)
 
     bestIndex = 0
     bestScore = 0.0
-    for j in iterRange :
+    for j in iterRange:
         score  = numpy.mean(results[j].accuracy())
         meanScores.append(score)
-        if score > bestScore :
+        if score > bestScore:
             bestIndex = j
             bestScore = score
     
-    if opts.roc :
+    if opts.roc:
         results[bestIndex].writeROC(roc_name(name))
 
     Scores.append(numpy.mean(meanScores))
     Stdev.append(numpy.std(meanScores))
 
-    if opts.verbose : 
+    if opts.verbose: 
         sys.stderr.write('%s %.3f\n' % (name, Scores[-1]))
 
-if opts.verbose :
+if opts.verbose:
     sys.stderr.write(timeString('--------\nFinished\n'))
 
 print 'Final ranking for %s:' % os.path.basename(csvFile)
 ranking = numpy.argsort(Scores)
-for i in ranking[::-1] :
+for i in ranking[::-1]:
     print '%-40s\t%.5f\t%.5f' % (Names[i], Scores[i], Stdev[i])
 
