@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 from optparse import OptionParser, OptionGroup
 import multiprocessing
 import numpy
@@ -7,6 +7,7 @@ import random
 import sys
 
 from sklearn import *
+from sklearn_utils import *
 
 # C values for linear kernels
 C_VALUES    = [10**x for x in range(-3,1)]
@@ -32,14 +33,14 @@ DEFAULT_CODE = PB_CODE
 def model_factory(modelCode, **args) :
     """Main method for creating a list of models for testing,
     based on a model code and its relevant parameters."""
-    cvalues   = getAttribute('cvalues', C_VALUES, **args)
-    bootstrap = getAttribute('bootstrap', False, **args)
-    gvalues   = getAttribute('gamma', G_VALUES, **args)
-    nprocs    = getAttribute('nprocs', 1, **args)
-    depth     = getAttribute('depth', 3, **args)
-    squal     = getAttribute('splitqual', GINI_TYPE, **args)
-    trees     = getAttribute('trees', T_VALUES, **args)
-    verbose   = getAttribute('verbose', False, **args)
+    cvalues   = args.get('cvalues', C_VALUES)
+    bootstrap = args.get('bootstrap', False)
+    gvalues   = args.get('gamma', G_VALUES)
+    nprocs    = args.get('nprocs', 1)
+    depth     = args.get('depth', 3)
+    squal     = args.get('splitqual', GINI_TYPE)
+    trees     = args.get('trees', T_VALUES)
+    verbose   = args.get('verbose', False)
 
     intTrees  = [int(x) for x in trees]
     modelType = MODEL_NAME[modelCode]
