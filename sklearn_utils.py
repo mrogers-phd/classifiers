@@ -6,8 +6,9 @@ import sklearn
 import sys
 import time
 
-MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE, EXTRA_TREE, ADABOOST, GRADIENT_BOOST,
-          LOGREG] = ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient', 'logistic']
+MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE,
+          EXTRA_TREE, ADABOOST, GRADIENT_BOOST, LOGREG] = \
+         ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient', 'logistic']
 
 MODEL_CODES = [LS_CODE, RS_CODE, RF_CODE, NB_CODE, DT_CODE, ET_CODE, AB_CODE, GB_CODE, LR_CODE] = 'LRFNDEAGO'
 MODEL_NAME = dict(zip(MODEL_CODES, MODELS))

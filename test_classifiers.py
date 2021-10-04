@@ -52,22 +52,23 @@ def classifier_factory(model_code, **args):
     verbose = args.get('verbose', False)
 
     intTrees = [int(x) for x in trees]
-    modelType = MODEL_NAME[model_code]
-
-    if verbose:
-        sys.stderr.write('creating %s model for %s\n' % (modelType, model_code))
+    model_type = MODEL_NAME[model_code]
 
     names = []
     models = []
-    if modelType == LINEAR_SVM:
+    if model_type == LINEAR_SVM:
         for cval in cvalues:
             names.append('Linear SVM (C=%.5g)' % cval)
             models.append(svm.SVC(kernel='linear', C=cval, probability=True))
-    elif modelType == RBF_SVM:
+    elif model_type == RBF_SVM:
         for gamma in gvalues:
             names.append('RBF SVM (gamma=%.5g, C=1)' % gamma)
             models.append(svm.SVC(kernel='rbf', C=1, gamma=gamma, probability=True))
-    elif modelType == RANDOM_FOREST:
+    elif model_type == LOGREG:
+        for cval in cvalues:
+            names.append('Logistic regression (C=%.5g)' % cval)
+            models.append(linear_model.LogisticRegression(C=cval))
+    elif model_type == RANDOM_FOREST:
         for p in intTrees:
             if bootstrap:
                 names.append('Random forest (N=%d, %s, bootstrap)' % (p, squal))
@@ -78,7 +79,7 @@ def classifier_factory(model_code, **args):
                                                           criterion=squal,
                                                           random_state=1,
                                                           n_jobs=nprocs))
-    elif modelType == EXTRA_TREE:
+    elif model_type == EXTRA_TREE:
         for p in intTrees:
             if bootstrap:
                 names.append('Extra trees (N=%d, %s, bootstrap)' % (p, squal))
@@ -89,20 +90,22 @@ def classifier_factory(model_code, **args):
                                                         criterion=squal,
                                                         random_state=1,
                                                         n_jobs=nprocs))
-    elif modelType == ADABOOST:
+    elif model_type == ADABOOST:
         for p in intTrees:
             names.append('Adaboost (N=%d)' % p)
             models.append(ensemble.AdaBoostClassifier(n_estimators=p, random_state=1))
-    elif modelType == GRADIENT_BOOST:
+    elif model_type == GRADIENT_BOOST:
         for p in intTrees:      # number of boosting stages
             names.append('Gradient boosting (N=%d)' % p)
             models.append(ensemble.GradientBoostingClassifier(n_estimators=p, max_depth=depth, subsample=0.5))
-    elif modelType == NAIVE_BAYES:
+    elif model_type == NAIVE_BAYES:
         names.append('Naive Bayes')
         models.append(naive_bayes.GaussianNB())
-    elif modelType == DECISION_TREE:
+    elif model_type == DECISION_TREE:
         names.append('Decision Tree')
         models.append(tree.DecisionTreeClassifier(random_state=1))
+    else:
+        raise ValueError('Unrecognized model type: {}'.format(model_type))
 
     return names, models
 
