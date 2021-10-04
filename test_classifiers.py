@@ -35,16 +35,13 @@ TVAL_STRING = ','.join(['%d' % x for x in T_VALUES])
 
 ALL_MODELS = 'ALL'
 
-MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE, EXTRA_TREE, ADABOOST, GRADIENT_BOOST,
-          LOGREG] = ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient', 'logistic']
-MODEL_CODES = [LS_CODE, RS_CODE, RF_CODE, NB_CODE, DT_CODE, ET_CODE, AB_CODE, GB_CODE, LR_CODE] = 'LRFNDEAGO'
-MODEL_NAME = dict(zip(MODEL_CODES, MODELS))
-DEFAULT_CODE = GB_CODE
 
+def classifier_factory(model_code, **args):
+    """Given a model code, create a list of models for testing,
+    and a corresponding list of model names and parameters.
 
-def model_factory(modelCode, **args):
-    """Main method for creating a list of models for testing,
-    based on a model code and its relevant parameters."""
+    :param str model_code: single character representing an sklearn classifier type
+    """
     cvalues = args.get('cvalues', C_VALUES)
     bootstrap = args.get('bootstrap', False)
     gvalues = args.get('gamma', G_VALUES)
@@ -55,10 +52,10 @@ def model_factory(modelCode, **args):
     verbose = args.get('verbose', False)
 
     intTrees = [int(x) for x in trees]
-    modelType = MODEL_NAME[modelCode]
+    modelType = MODEL_NAME[model_code]
 
     if verbose:
-        sys.stderr.write('creating %s model for %s\n' % (modelType, modelCode))
+        sys.stderr.write('creating %s model for %s\n' % (modelType, model_code))
 
     names = []
     models = []
@@ -114,7 +111,7 @@ def run_iteration(iterId):
     """"Multiprocessing-friendly method that runs a single iteration
     of cross-validation for the current global model.  NB: iteration
     number indexes into the random number seed for this iteration."""
-    return runCV(MODEL, DATA.features, DATA.labels, nfolds=opts.nfolds, shuffle=True, random_state=seeds[iterId])
+    return cross_validation(MODEL, DATA.features, DATA.labels, nfolds=opts.nfolds, shuffle=True, random_state=seeds[iterId])
 
 
 def roc_name(s):
@@ -199,7 +196,7 @@ if opts.nprocs > multiprocessing.cpu_count():
     sys.exit(1)
 
 csvFile = args[0]
-validateFile(csvFile)
+validate_file(csvFile)
 
 # Global values for multiprocessing:
 NFOLDS = opts.nfolds
@@ -211,8 +208,7 @@ tValues = [int(x) for x in opts.trees.split(',')]
 set_seed(1)
 seeds = [random.randint(0, 1000) for r in range(opts.niter)]
 
-# DATA = loadCSV(csvFile, createScaler=opts.std)
-DATA = loadCSV(csvFile, verbose=opts.verbose)
+DATA = load_csv(csvFile)
 
 if opts.verbose:
     sys.stderr.write('Data: %s\n' % DATA)
@@ -222,12 +218,12 @@ if opts.verbose:
 Names = []
 models = []
 for c in mCodes:
-    n, m = model_factory(c, cvalues=cValues, gamma=gValues, trees=tValues,
-                         bootstrap=opts.bootstrap,
-                         splitqual=opts.squal,
-                         depth=opts.depth,
-                         nprocs=opts.nprocs,
-                         verbose=opts.verbose)
+    n, m = classifier_factory(c, cvalues=cValues, gamma=gValues, trees=tValues,
+                              bootstrap=opts.bootstrap,
+                              splitqual=opts.squal,
+                              depth=opts.depth,
+                              nprocs=opts.nprocs,
+                              verbose=opts.verbose)
     if opts.verbose:
         sys.stderr.write('adding model %s\n' % n)
     Names.extend(n)
@@ -244,7 +240,8 @@ for k in range(len(Names)):
     name = Names[k]
     MODEL = models[k]
     if opts.verbose:
-        sys.stderr.write('%s\n' % timeString(name))
+        sys.stderr.write('%s\n' % time_string(name))
+
     meanScores = []
     iterRange = range(opts.niter)
     if opts.nprocs > 1:
@@ -273,9 +270,10 @@ for k in range(len(Names)):
         sys.stderr.write('%s %.3f\n' % (name, Scores[-1]))
 
 if opts.verbose:
-    sys.stderr.write(timeString('--------\nFinished\n'))
+    sys.stderr.write(time_string('--------\nFinished\n'))
 
-print('Final ranking for %s:' % os.path.basename(csvFile))
+print('Final rankings for %s:' % os.path.basename(csvFile))
+print('\n%-40s\t%11s\t%11s' % ('Model', 'Avg.', 'Stdev.'))
 ranking = numpy.argsort(Scores)
 for i in ranking[::-1]:
-    print('%-40s\t%.5f\t%.5f' % (Names[i], Scores[i], Stdev[i]))
+    print('%-40s\t%10.5f\t%10.5f' % (Names[i], Scores[i], Stdev[i]))

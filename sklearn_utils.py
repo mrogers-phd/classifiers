@@ -69,7 +69,7 @@ class ClassifierData(object):
 
     def computeBinaryLabels(self):
         """Creates a list of 0/1 labels regardless of the original labels."""
-        self.binary = [binaryLabel(x) for x in self.labels]
+        self.binary = [binary_label(x) for x in self.labels]
 
     def createScaler(self):
         """Creates a standardising scaler (subtract mean, divide by SD) but does NOT apply it
@@ -155,7 +155,7 @@ class ChromosomeMap(object):
         for i in range(len(self.metadata)):
             parts = self.metadata[i].split('\t')
             chrom = parts[0]
-            label = binaryLabel(parts[4])
+            label = binary_label(parts[4])
             labelSet.add(label)
             self.chromDict.setdefault(chrom, {})
             self.chromDict[chrom].setdefault(label, [])
@@ -339,7 +339,7 @@ def accuracy(df, given, verbose=False, threshold=None):
     return result
 
 
-def binaryLabel(s):
+def binary_label(s):
     """Convenience method for assigning a value to string labels: -1 or 0 --> 0, 1 --> 1."""
     return int(int(s) > 0)
 
@@ -379,7 +379,27 @@ def confusionMatrix(df, given, verbose=False, threshold=None):
     return (TP, TN, FP, FN)
 
 
-def dfFactory(model, data):
+def cross_validation(model, data, labels, nfolds=5, **args):
+    """Runs cross-validation, creating a results object that permits access to a variety of CV statistics."""
+
+    # Recent version of sklearn completely breaks this!  Rather than wading through sparse documentation
+    # to reconfigure everything, and with the onerous possibility that it will change again later,
+    # I wrote my own stinkin' method.  Not that I'm bitter...  ;-)
+    # cvFolds = sklearn.model_selection.StratifiedKFold(labels, nfolds, **args)
+    cvFolds = stratified_folds(labels, nfolds)
+
+    result = Results()
+    ctr = 0
+    # train, test are lists of array indexes
+    for (train, test) in cvFolds:
+        ctr += 1
+        model.fit(data[train], labels[train])
+        df = df_factory(model, data[test])
+        result.add(ctr, df, labels[test])
+    return result
+
+
+def df_factory(model, data):
     """Factory method for obtaining a list of decision-function values."""
     # 'predict_proba' is available for random forest, extra trees,
     # and SVM when probability=True
@@ -417,14 +437,14 @@ def ezopen(file_name, verbose=False):
         return open(file_name)
 
 
-def loadCSV(f, verbose=False):
+def load_csv(csv_file):
     """Loads data from a CSV file into arrays for labels and features.
     Assumes label is the first column in each row."""
     labels = []
     features = []
-    for line in ezopen(f):
+    for line in ezopen(csv_file):
         parts = line.strip().split(',')
-        labels.append(binaryLabel(parts[0]))
+        labels.append(binary_label(parts[0]))
         vector = [float(x) for x in parts[1:]]
         features.append(vector)
 
@@ -441,7 +461,7 @@ def ppv(df, given, threshold=None):
     return result
 
 
-def stratifiedFolds(labels, nfolds):
+def stratified_folds(labels, nfolds):
     """Returns pairs of index lists for each of the folds, stratified by labels.
     Assumes labels are positive/0 or positive/negative."""
     pos = []
@@ -481,26 +501,6 @@ def stratifiedFolds(labels, nfolds):
     return result
 
 
-def runCV(model, data, labels, nfolds=5, **args):
-    """Runs cross-validation, creating a results object that permits access to a variety of CV statistics."""
-
-    # Recent version of sklearn completely breaks this!  Rather than wading through sparse documentation
-    # to reconfigure everything, and with the onerous possibility that it will change again later,
-    # I wrote my own stinkin' method.  Not that I'm bitter...  ;-)
-    # cvFolds = sklearn.model_selection.StratifiedKFold(labels, nfolds, **args)
-    cvFolds = stratifiedFolds(labels, nfolds)
-
-    result = Results()
-    ctr = 0
-    # train, test are lists of array indexes
-    for (train, test) in cvFolds:
-        ctr += 1
-        model.fit(data[train], labels[train])
-        df = dfFactory(model, data[test])
-        result.add(ctr, df, labels[test])
-    return result
-
-
 def sensitivity(df, given, threshold=None):
     """Computes sensitivity for a given TP, TN, FP and FN rate."""
     (TP, TN, FP, FN) = confusionMatrix(df, given, threshold=threshold)
@@ -517,7 +517,7 @@ def specificity(df, given, threshold=None):
     return result
 
 
-def timeString(s, format_string='%X', LF=False):
+def time_string(s, format_string='%X', LF=False):
     """Returns the input string with user-readable a timestamp prefix."""
     timestamp = time.strftime(format_string, time.localtime())
     result = '%s %s' % (timestamp, s)
@@ -526,7 +526,7 @@ def timeString(s, format_string='%X', LF=False):
     return result
 
 
-def validateFile(path):
+def validate_file(path):
     """Standard method for validating file paths."""
     if not path:
         raise Exception("'%s' is not a valid file path; exiting." % path)
