@@ -252,7 +252,7 @@ for k in range(len(Names)):
         results = MP.map(run_iteration, iterRange)
         MP.terminate()
     else:
-        results = map(run_iteration, iterRange)
+        results = [r for r in map(run_iteration, iterRange)]
 
     bestIndex = 0
     bestScore = 0.0
