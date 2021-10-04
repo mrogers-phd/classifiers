@@ -30,7 +30,7 @@ G_VALUES = [10**x for x in range(-3, 1)]
 GVAL_STRING = ','.join(['%.3g' % x for x in G_VALUES])
 
 # Trees in random forest (RF, ET, GB models)
-T_VALUES = [10**x for x in range(2, 4)]
+T_VALUES = [2**x for x in range(1, 8)]
 TVAL_STRING = ','.join(['%d' % x for x in T_VALUES])
 
 ALL_MODELS = 'ALL'
@@ -46,7 +46,7 @@ def classifier_factory(model_code, **args):
     bootstrap = args.get('bootstrap', False)
     gvalues = args.get('gamma', G_VALUES)
     nprocs = args.get('nprocs', 1)
-    depth = args.get('depth', 3)
+    depth = args.get('depth', 1)
     squal = args.get('splitqual', GINI_TYPE)
     trees = args.get('trees', T_VALUES)
     verbose = args.get('verbose', False)
@@ -227,8 +227,6 @@ for c in mCodes:
                               depth=opts.depth,
                               nprocs=opts.nprocs,
                               verbose=opts.verbose)
-    if opts.verbose:
-        sys.stderr.write('adding model %s\n' % n)
     Names.extend(n)
     models.extend(m)
 
@@ -276,7 +274,7 @@ if opts.verbose:
     sys.stderr.write(time_string('--------\nFinished\n'))
 
 print('Final rankings for %s:' % os.path.basename(csvFile))
-print('\n%-40s\t%11s\t%11s' % ('Model', 'Avg.', 'Stdev.'))
+print('\n%-40s\t%-6s\t%-6s' % ('Model', 'Avg.', 'Stdev.'))
 ranking = numpy.argsort(Scores)
 for i in ranking[::-1]:
-    print('%-40s\t%10.5f\t%10.5f' % (Names[i], Scores[i], Stdev[i]))
+    print('%-40s\t%0.5f\t%0.5f' % (Names[i], Scores[i], Stdev[i]))
