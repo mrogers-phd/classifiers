@@ -6,8 +6,11 @@
 # This script provides a comparison across ten different kinds of classifiers
 # using random two-dimensional data.
 #
-import numpy as np
+import argparse
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+import sys
 
 from matplotlib.colors import ListedColormap
 from sklearn.model_selection import train_test_split
@@ -23,37 +26,57 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
+DEFAULT_RANDOM_SEED = 1
 
 # Classifier names establish ordering for what follows:
-names = [KNN, LINEAR_SVM, RBF_SVM, GAUSSIAN_PROCESS, DECISION_TREE, RANDOM_FOREST,
+CLASSIFIERS = [KNN, LINEAR_SVM, RBF_SVM, GAUSSIAN_PROCESS, DECISION_TREE, RANDOM_FOREST,
          NEURAL_NET, ADABOOST, NAIVE_BAYES, QUADRATIC_DISCRIMINANT] = \
         ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process", "Decision Tree", "Random Forest",
          "Neural Net", "AdaBoost", "Naive Bayes", "QDA"]
 
+DESCRIPTION = """
+This script provides a comparison across ten different kinds of classifiers
+using random two-dimensional data.
+"""
+
+parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
+parser.add_argument('-k', help='k-NN parameter', type=int, default=3)
+parser.add_argument('-n', help='Number of samples in dataset', type=int, default=100)
+parser.add_argument('-r', dest='rf_depth', help='Random forest depth', type=int, default=5)
+parser.add_argument('-s', dest='seed', help='Random seed', type=int, default=None)
+parser.add_argument('-G', dest='gamma', help='RBF SVM gamma value', type=float, default=2.0)
+parser.add_argument('-L', dest='linear_c', help='Linear SVM soft margin parameter (C-value)', type=float, default=0.025)
+parser.add_argument('-P', dest='gp_length', help='Gaussian process RBF length parameter', type=float, default=1.0)
+parser.add_argument('-v', help='verbose mode', action='store_true')
+
+args = parser.parse_args()
+
 # Establish default model for each classifier type
-classifiers = {KNN: KNeighborsClassifier(3),
-         LINEAR_SVM: SVC(kernel="linear", C=0.025),
-         RBF_SVM: SVC(gamma=2, C=1),
-         GAUSSIAN_PROCESS: GaussianProcessClassifier(1.0 * RBF(1.0)),
-         DECISION_TREE: DecisionTreeClassifier(max_depth=5),
-         RANDOM_FOREST: RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-         NEURAL_NET: MLPClassifier(alpha=1, max_iter=1000),
-         ADABOOST: AdaBoostClassifier(),
-         NAIVE_BAYES: GaussianNB(),
-         QUADRATIC_DISCRIMINANT: QuadraticDiscriminantAnalysis()
-         }
+classifiers = {KNN: KNeighborsClassifier(args.k),
+               LINEAR_SVM: SVC(kernel="linear", C=args.linear_c),
+               RBF_SVM: SVC(gamma=args.gamma, C=1),
+               GAUSSIAN_PROCESS: GaussianProcessClassifier(1.0 * RBF(args.gp_length)),
+               DECISION_TREE: DecisionTreeClassifier(max_depth=args.dt_depth),
+               RANDOM_FOREST: RandomForestClassifier(max_depth=args.rf_depth, n_estimators=10, max_features=1),
+               NEURAL_NET: MLPClassifier(alpha=1, max_iter=1000),
+               ADABOOST: AdaBoostClassifier(),
+               NAIVE_BAYES: GaussianNB(),
+               QUADRATIC_DISCRIMINANT: QuadraticDiscriminantAnalysis()
+               }
 
-# Generate binary classification data
-X, y = make_classification(n_features=2, n_redundant=0, n_informative=2, random_state=1, n_clusters_per_class=1)
-
-rng = np.random.RandomState(2)
+# Generate linearly separable dataset:
+X, y = make_classification(n_samples=args.n, n_features=2, n_redundant=0, n_informative=2, random_state=args.seed, n_clusters_per_class=1)
+rng = np.random.RandomState(args.seed)
 X += 2 * rng.uniform(size=X.shape)
 linearly_separable = (X, y)
 
-datasets = [make_moons(noise=0.3, random_state=0),
-            make_circles(noise=0.2, factor=0.5, random_state=1),
-            linearly_separable
-            ]
+# Create a list of datasets with the linearly separable data plus two others:
+ds_names = [MOONS, CIRCLES, LINEAR] = ['Overlapping crescents', 'Concentric circles', 'Linearly separable']
+datasets = {MOONS: make_moons(n_samples=args.n, noise=0.3, random_state=args.seed),
+            CIRCLES: make_circles(n_samples=args.n, noise=0.2, factor=0.5, random_state=args.seed),
+            LINEAR: linearly_separable
+            }
 
 figure = plt.figure(figsize=(27, 9))
 mesh_stepsize = 0.02
@@ -63,7 +86,13 @@ mesh_stepsize = 0.02
 plot_index = 1
 
 # Iterate over datasets
-for dataset_index, dataset in enumerate(datasets):
+dataset_index = 0
+for ds_name in ds_names:
+    dataset_index += 1
+    dataset = datasets[ds_name]
+    if args.v:
+        print('Dataset {}/{}: {} data'.format(dataset_index, len(ds_names), ds_name))
+
     # Preprocess dataset
     X, y = dataset
     X = StandardScaler().fit_transform(X)
@@ -73,13 +102,13 @@ for dataset_index, dataset in enumerate(datasets):
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
 
     # Split into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.4, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.4, random_state=args.seed)
 
     # Plot the dataset on the left
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(['#FF0000', '#0000FF'])
     ax = plt.subplot(len(datasets), len(classifiers) + 1, plot_index)
-    if dataset_index == 0:
+    if dataset_index == 1:
         ax.set_title("Input data")
 
     # Plot the training points
@@ -100,7 +129,10 @@ for dataset_index, dataset in enumerate(datasets):
     plot_index += 1
 
     # Iterate over classifiers
-    for name in names:
+    for name in CLASSIFIERS:
+        if args.v:
+            print('  {}'.format(name))
+
         clf = classifiers[name]
         ax = plt.subplot(len(datasets), len(classifiers) + 1, plot_index)
         clf.fit(X_train, y_train)
@@ -126,7 +158,7 @@ for dataset_index, dataset in enumerate(datasets):
         ax.set_ylim(yy.min(), yy.max())
         ax.set_xticks(())
         ax.set_yticks(())
-        if dataset_index == 0:
+        if dataset_index == 1:
             ax.set_title(name)
 
         ax.text(xx.max() - 0.3, yy.min() + 0.3, ('%.2f' % score).lstrip('0'), size=15, horizontalalignment='right')
