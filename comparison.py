@@ -23,26 +23,29 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
-h = .02  # step size in the mesh
 
-names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
-         "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-         "Naive Bayes", "QDA"]
+# Classifier names establish ordering for what follows:
+names = [KNN, LINEAR_SVM, RBF_SVM, GAUSSIAN_PROCESS, DECISION_TREE, RANDOM_FOREST,
+         NEURAL_NET, ADABOOST, NAIVE_BAYES, QUADRATIC_DISCRIMINANT] = \
+        ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process", "Decision Tree", "Random Forest",
+         "Neural Net", "AdaBoost", "Naive Bayes", "QDA"]
 
-classifiers = [
-    KNeighborsClassifier(3),
-    SVC(kernel="linear", C=0.025),
-    SVC(gamma=2, C=1),
-    GaussianProcessClassifier(1.0 * RBF(1.0)),
-    DecisionTreeClassifier(max_depth=5),
-    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    MLPClassifier(alpha=1, max_iter=1000),
-    AdaBoostClassifier(),
-    GaussianNB(),
-    QuadraticDiscriminantAnalysis()]
+# Establish default model for each classifier type
+classifiers = {KNN: KNeighborsClassifier(3),
+         LINEAR_SVM: SVC(kernel="linear", C=0.025),
+         RBF_SVM: SVC(gamma=2, C=1),
+         GAUSSIAN_PROCESS: GaussianProcessClassifier(1.0 * RBF(1.0)),
+         DECISION_TREE: DecisionTreeClassifier(max_depth=5),
+         RANDOM_FOREST: RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+         NEURAL_NET: MLPClassifier(alpha=1, max_iter=1000),
+         ADABOOST: AdaBoostClassifier(),
+         NAIVE_BAYES: GaussianNB(),
+         QUADRATIC_DISCRIMINANT: QuadraticDiscriminantAnalysis()
+         }
 
-X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
-                           random_state=1, n_clusters_per_class=1)
+# Generate binary classification data
+X, y = make_classification(n_features=2, n_redundant=0, n_informative=2, random_state=1, n_clusters_per_class=1)
+
 rng = np.random.RandomState(2)
 X += 2 * rng.uniform(size=X.shape)
 linearly_separable = (X, y)
@@ -53,41 +56,53 @@ datasets = [make_moons(noise=0.3, random_state=0),
             ]
 
 figure = plt.figure(figsize=(27, 9))
-i = 1
-# iterate over datasets
-for ds_cnt, ds in enumerate(datasets):
-    # preprocess dataset, split into training and test part
-    X, y = ds
+mesh_stepsize = 0.02
+
+# matplotlib plot index ranges from 1 (upper-left) to (# datasets x # classifiers+1) (lower-right)
+# with default settings, this is 1-30
+plot_index = 1
+
+# Iterate over datasets
+for dataset_index, dataset in enumerate(datasets):
+    # Preprocess dataset
+    X, y = dataset
     X = StandardScaler().fit_transform(X)
-    X_train, X_test, y_train, y_test = \
-        train_test_split(X, y, test_size=.4, random_state=42)
 
-    x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
-    y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                         np.arange(y_min, y_max, h))
+    # Set plotting boundaries
+    x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
+    y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
 
-    # just plot the dataset first
+    # Split into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.4, random_state=42)
+
+    # Plot the dataset on the left
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(['#FF0000', '#0000FF'])
-    ax = plt.subplot(len(datasets), len(classifiers) + 1, i)
-    if ds_cnt == 0:
+    ax = plt.subplot(len(datasets), len(classifiers) + 1, plot_index)
+    if dataset_index == 0:
         ax.set_title("Input data")
+
     # Plot the training points
-    ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright,
-               edgecolors='k')
+    ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors='k')
+
     # Plot the testing points
-    ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6,
-               edgecolors='k')
+    ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors='k')
+
+    # Establish plot image data for all axes
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, mesh_stepsize),
+                         np.arange(y_min, y_max, mesh_stepsize))
+
     ax.set_xlim(xx.min(), xx.max())
     ax.set_ylim(yy.min(), yy.max())
     ax.set_xticks(())
     ax.set_yticks(())
-    i += 1
 
-    # iterate over classifiers
-    for name, clf in zip(names, classifiers):
-        ax = plt.subplot(len(datasets), len(classifiers) + 1, i)
+    plot_index += 1
+
+    # Iterate over classifiers
+    for name in names:
+        clf = classifiers[name]
+        ax = plt.subplot(len(datasets), len(classifiers) + 1, plot_index)
         clf.fit(X_train, y_train)
         score = clf.score(X_test, y_test)
 
@@ -103,21 +118,19 @@ for ds_cnt, ds in enumerate(datasets):
         ax.contourf(xx, yy, Z, cmap=cm, alpha=.8)
 
         # Plot the training points
-        ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright,
-                   edgecolors='k')
+        ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors='k')
         # Plot the testing points
-        ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright,
-                   edgecolors='k', alpha=0.6)
+        ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, edgecolors='k', alpha=0.6)
 
         ax.set_xlim(xx.min(), xx.max())
         ax.set_ylim(yy.min(), yy.max())
         ax.set_xticks(())
         ax.set_yticks(())
-        if ds_cnt == 0:
+        if dataset_index == 0:
             ax.set_title(name)
-        ax.text(xx.max() - .3, yy.min() + .3, ('%.2f' % score).lstrip('0'),
-                size=15, horizontalalignment='right')
-        i += 1
+
+        ax.text(xx.max() - 0.3, yy.min() + 0.3, ('%.2f' % score).lstrip('0'), size=15, horizontalalignment='right')
+        plot_index += 1
 
 plt.tight_layout()
 plt.show()
