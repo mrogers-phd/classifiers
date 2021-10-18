@@ -222,7 +222,7 @@ class Results(object):
 
         self.dfDict[foldId] = df
         self.labelDict[foldId] = labels
-        self.confDict[foldId] = confusionMatrix(df, labels, threshold=self.threshold)
+        self.confDict[foldId] = confusion_matrix(df, labels, threshold=self.threshold)
 
         self.updateDF()
 
@@ -268,7 +268,7 @@ class Results(object):
 
     def confusion(self):
         """Returns the confusion matrix for this object."""
-        return confusionMatrix(self.df, self.labels, threshold=self.threshold)
+        return confusion_matrix(self.df, self.labels, threshold=self.threshold)
 
     def folds(self):
         """Return the set of folds represented in the results instance."""
@@ -284,6 +284,10 @@ class Results(object):
 
     def __len__(self):
         return len(self.dfDict.keys())
+
+    def matthews(self):
+        """Compute the overall Matthews Correlation Coefficient for the results represented in the instance."""
+        return matthews_correlation(self.df, self.labels)
 
     def ppv(self):
         """Compute the overall sensitivity for the results represented in the instance."""
@@ -331,7 +335,7 @@ class Results(object):
 
 def accuracy(df, given, verbose=False, threshold=None):
     """Computes balanced accuracy for a given TP, TN, FP and FN rate."""
-    (TP, TN, FP, FN) = confusionMatrix(df, given, verbose=verbose, threshold=threshold)
+    (TP, TN, FP, FN) = confusion_matrix(df, given, verbose=verbose, threshold=threshold)
     denom1 = TP + FN
     denom2 = TN + FP
     q1 = (0.5*TP)/denom1 if denom1 else 0.0
@@ -345,7 +349,7 @@ def binary_label(s):
     return int(int(s) > 0)
 
 
-def confusionMatrix(df, given, verbose=False, threshold=None):
+def confusion_matrix(df, given, verbose=False, threshold=None):
     """Computes components of confusion matrix: TP, TN, FP and FN results for a set of examples."""
     if len(df) != len(given):
         raise ValueError('Number of predictions must match number of training examples (%d != %d)' %
@@ -454,9 +458,19 @@ def load_csv(csv_file):
     return ClassifierData(labels=labels, features=features)
 
 
+def matthews_correlation(df, given, verbose=False, threshold=None):
+    """Computes the Matthews Correlation Coefficient for a given TP, TN, FP and FN rate."""
+    (TP, TN, FP, FN) = confusion_matrix(df, given, verbose=verbose, threshold=threshold)
+    denom = (TP+FP)*(TP+FN)*(TN+FP)*(TN+FN)
+    if denom > 0: # numpy complains about sqrt(0)
+        return float(TP*TN - FP*FN)/numpy.sqrt(denom)
+    else:
+        return 0.0
+
+
 def ppv(df, given, threshold=None):
     """Computes positive predictive value (PPV) for a given TP and FP rate."""
-    (TP, TN, FP, FN) = confusionMatrix(df, given, threshold=threshold)
+    (TP, TN, FP, FN) = confusion_matrix(df, given, threshold=threshold)
     denom = TP + FP
     result = float(TP)/denom if denom else 0.0
     return result
@@ -504,7 +518,7 @@ def stratified_folds(labels, nfolds):
 
 def sensitivity(df, given, threshold=None):
     """Computes sensitivity for a given TP, TN, FP and FN rate."""
-    (TP, TN, FP, FN) = confusionMatrix(df, given, threshold=threshold)
+    (TP, TN, FP, FN) = confusion_matrix(df, given, threshold=threshold)
     denom = TP + FN
     result = float(TP)/denom if denom else 0.0
     return result
@@ -512,7 +526,7 @@ def sensitivity(df, given, threshold=None):
 
 def specificity(df, given, threshold=None):
     """Computes sensitivity for a given TP, TN, FP and FN rate."""
-    (TP, TN, FP, FN) = confusionMatrix(df, given, threshold=threshold)
+    (TP, TN, FP, FN) = confusion_matrix(df, given, threshold=threshold)
     denom = TN + FP
     result = float(TN)/denom if denom else 0.0
     return result
