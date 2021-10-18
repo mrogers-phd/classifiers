@@ -48,24 +48,6 @@ MODEL_NAME = {'K': KNN,
               'Q': QUADRATIC_DISCRIMINANT,
               }
 
-DESCRIPTION = """
-This script provides a comparison across ten different kinds of classifiers
-using random two-dimensional data.
-
-Possible models are:
-    K = [K]-nearest-neighbors
-    L = [L]inear SVM
-    R = [R]BF SVM
-    P = Gaussian [P]rocess
-    D = [D]ecision tree
-    F = Random [F]orest
-    N = [N]eural network
-    A = [A]daBoost
-    B = Naive [B]ayes
-    Q = [Q]uadratic discriminant
-"""
-
-MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA'
 
 def model_factory(model_name, args):
     """Return a model of the appropriate type for the given model name."""
@@ -92,7 +74,29 @@ def model_factory(model_name, args):
     else:
         raise ValueError('Unrecognized model name {}'.format(model_name))
 
-parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+DESCRIPTION = """
+This script provides a comparison across ten different kinds of classifiers using random two-dimensional data.
+
+Possible models are:
+    K = [K]-nearest-neighbors
+    L = [L]inear SVM 
+    R = [R]BF SVM 
+    P = Gaussian [P]rocess 
+    D = [D]ecision tree 
+    F = Random [F]orest 
+    N = [N]eural network 
+    A = [A]daBoost 
+    B = Naive [B]ayes 
+    Q = [Q]uadratic discriminant
+"""
+
+MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA'
+
+# Hack to use two formatters to get argparse to show description and help default values nicely:
+class CombinedFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+    pass
+
+parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=CombinedFormatter)
 parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
 parser.add_argument('-k', help='k-NN parameter', type=int, default=3)
 parser.add_argument('-m', dest='model_codes', help='Models to compare ' + MODEL_HELP, default=MODEL_CODES)
