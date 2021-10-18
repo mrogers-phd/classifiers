@@ -106,105 +106,6 @@ class ClassifierData(object):
         self.computeBinaryLabels()
 
 
-class ChromosomeMap(object):
-    """Encapsulates a data structure that maps chromosome, position
-    and reference/mutant values to labels."""
-    def __init__(self, metadata):
-        self.chromDict = {}
-        if type(metadata) == list:
-            self.metadata = metadata
-        elif type(metadata) == str:
-            self.metadata = [s.strip() for s in ezopen(metadata)]
-        elif type(metadata) == file:
-            self.metadata = [s.strip() for s in metadata]
-        else:
-            raise ValueError('Unrecognized metadata type: must be a list, string or input stream')
-
-        self.setChromosomeMap()
-
-        assert(self.chromDict is not None)
-
-    def __getitem__(self, key):
-        assert(self.chromDict is not None)
-        try:
-            result = self.chromDict[key]
-        except KeyError:
-            raise KeyError('key %s not found in %s\n' % (key, ','.join(self.chromDict.keys())))
-        return result
-
-    def keys(self):
-        return self.chromDict.keys()
-
-    def __len__(self):
-        return len(self.metadata)
-
-    def removeIndexes(self, removeSet):
-        """Removes specific examples from the dictionary."""
-        if type(removeSet) != set:
-            raise ValueError('input to removeIndexes() must be a set')
-        newMetadata = []
-        for i in range(len(self.metadata)):
-            if i not in removeSet:
-                newMetadata.append(self.metadata[i])
-        self.metadata = newMetadata
-        self.setChromosomeMap()
-
-    def setChromosomeMap(self):
-        """Sets the instance chromosome map based on whatever is in the metadata record list."""
-        self.chromDict = {}
-        labelSet = set()
-        for i in range(len(self.metadata)):
-            parts = self.metadata[i].split('\t')
-            chrom = parts[0]
-            label = binary_label(parts[4])
-            labelSet.add(label)
-            self.chromDict.setdefault(chrom, {})
-            self.chromDict[chrom].setdefault(label, [])
-            self.chromDict[chrom][label].append(i)
-
-        if len(labelSet) != 2:
-            raise ValueError('Metadata (%s) does not have two distinct classes (%s)' % (f, ','.join(labelSet)))
-
-
-class KernelConfig(object):
-    """Encapsulates information about a kernel including the source file,
-    kernel type and kernel parameters."""
-    def __init__(self, sourceFile, modelCode, **args):
-        self.filename = sourceFile
-
-        if modelCode not in MODEL_CODES:
-            raise ValueError('Invalid model code %s; must be one of %s' % (modelCode, '/'.join(MODEL_CODES)))
-
-        self.code = modelCode
-        self.param = args.get('param', 1.0)
-        self.bootstrap = args.get('bootstrap', False)
-        self.squal = args.get('splitqual', GINI_TYPE)
-        self.acc = args.get('acc', 0.0)
-        self.weight = args.get('weight', 0.0)
-
-    def __cmp__(self, other):
-        return cmp(self.acc, other.acc)
-
-    def __str__(self):
-        name = MODEL_NAME[self.code]
-        result = '%s %s' % (self.filename, name)
-        if self.code in EXTENDED_MODELS:
-            result += ' %d trees, sq_type %s, bootstrap %s' % (self.param, self.squal, self.bootstrap)
-        elif self.code in TREE_MODELS:
-            result += ' %d trees' % self.param
-        elif name == LINEAR_SVM:
-            result += ' C=%.5g' % self.param
-        elif name == RBF_SVM:
-            result += ' C=1, gamma=%.5g' % self.param
-        else:
-            raise ValueError('Illegal model code %s' % self.code)
-        result += ' acc=%.5f' % self.acc
-        return result
-
-    def __repr__(self):
-        return self.__str__()
-
-
 class Results(object):
     """Mini version of a results object similar to those in PyML but for sklearn CV methods."""
     def __init__(self):
@@ -424,7 +325,7 @@ def df_factory(model, data):
         raise ValueError('Required function not available for %s!' % type(model))
 
 
-def ezopen(file_name, verbose=False):
+def ezopen(file_name):
     """Allows clients to open files without regard for whether they're gzipped."""
     if not (os.path.exists(file_name) and os.path.isfile(file_name)):
         raise ValueError('file does not exist at %s' % file_name)
@@ -433,18 +334,14 @@ def ezopen(file_name, verbose=False):
     try:
         line = handle.readline()
         handle.close()
-        if verbose:
-            sys.stderr.write('OPENING %s AS GZIP FILE\n' % file_name)
         return gzip.open(file_name, mode='rt')
     except Exception:
-        if verbose:
-            sys.stderr.write('OPENING %s AS ASCII FILE\n' % file_name)
         return open(file_name)
 
 
 def load_csv(csv_file):
     """Loads data from a CSV file into arrays for labels and features.
-    Assumes label is the first column in each row."""
+    Note: label must be the first column in each row."""
     labels = []
     features = []
     for line in ezopen(csv_file):
@@ -491,6 +388,7 @@ def stratified_folds(labels, nfolds):
 
     if nPos < nfolds or nNeg < nfolds:
         raise ValueError('Insufficient positive (%d) or negative (%d) examples for %d-fold CV' % (nPos, nNeg, nfolds))
+
     pSize = float(nPos)/nfolds
     nSize = float(nNeg)/nfolds
     pSet = set(pos)
@@ -513,6 +411,7 @@ def stratified_folds(labels, nfolds):
         result.append([train, test])
         pStart = pEnd
         nStart = nEnd
+
     return result
 
 
