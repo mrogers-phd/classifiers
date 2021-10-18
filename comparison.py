@@ -12,6 +12,7 @@ import numpy as np
 import os
 import sys
 
+from matplotlib import rcParams
 from matplotlib.colors import ListedColormap
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -31,17 +32,70 @@ DEFAULT_RANDOM_SEED = 1
 # Classifier names establish ordering for what follows:
 CLASSIFIERS = [KNN, LINEAR_SVM, RBF_SVM, GAUSSIAN_PROCESS, DECISION_TREE, RANDOM_FOREST,
          NEURAL_NET, ADABOOST, NAIVE_BAYES, QUADRATIC_DISCRIMINANT] = \
-        ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process", "Decision Tree", "Random Forest",
+        ["k-NN", "Linear SVM", "RBF SVM", "Gauss. Proc.", "Dec. Tree", "RF",
          "Neural Net", "AdaBoost", "Naive Bayes", "QDA"]
+MODEL_CODES = 'KLRPDFNABQ'
+
+MODEL_NAME = {'K': KNN,
+              'L': LINEAR_SVM,
+              'R': RBF_SVM,
+              'P': GAUSSIAN_PROCESS,
+              'D': DECISION_TREE,
+              'F': RANDOM_FOREST,
+              'N': NEURAL_NET,
+              'A': ADABOOST,
+              'B': NAIVE_BAYES,
+              'Q': QUADRATIC_DISCRIMINANT,
+              }
 
 DESCRIPTION = """
 This script provides a comparison across ten different kinds of classifiers
 using random two-dimensional data.
+
+Possible models are:
+    K = [K]-nearest-neighbors
+    L = [L]inear SVM
+    R = [R]BF SVM
+    P = Gaussian [P]rocess
+    D = [D]ecision tree
+    F = Random [F]orest
+    N = [N]eural network
+    A = [A]daBoost
+    B = Naive [B]ayes
+    Q = [Q]uadratic discriminant
 """
+
+MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA'
+
+def model_factory(model_name, args):
+    """Return a model of the appropriate type for the given model name."""
+    if model_name == KNN:
+        return KNeighborsClassifier(args.k)
+    elif model_name == LINEAR_SVM:
+        return SVC(kernel="linear", C=args.linear_c)
+    elif model_name == RBF_SVM:
+        return SVC(gamma=args.gamma, C=1)
+    elif model_name == GAUSSIAN_PROCESS:
+        return GaussianProcessClassifier(1.0 * RBF(args.gp_length))
+    elif model_name == DECISION_TREE:
+        return DecisionTreeClassifier(max_depth=args.dt_depth)
+    elif model_name == RANDOM_FOREST:
+        return RandomForestClassifier(max_depth=args.rf_depth, n_estimators=10, max_features=1)
+    elif model_name == NEURAL_NET:
+        return MLPClassifier(alpha=1, max_iter=1000)
+    elif model_name == ADABOOST:
+        return AdaBoostClassifier()
+    elif model_name == NAIVE_BAYES:
+        return GaussianNB()
+    elif model_name == QUADRATIC_DISCRIMINANT:
+        return QuadraticDiscriminantAnalysis()
+    else:
+        raise ValueError('Unrecognized model name {}'.format(model_name))
 
 parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
 parser.add_argument('-k', help='k-NN parameter', type=int, default=3)
+parser.add_argument('-m', dest='model_codes', help='Models to compare ' + MODEL_HELP, default=MODEL_CODES)
 parser.add_argument('-n', help='Number of samples in dataset', type=int, default=100)
 parser.add_argument('-r', dest='rf_depth', help='Random forest depth', type=int, default=5)
 parser.add_argument('-s', dest='seed', help='Random seed', type=int, default=None)
@@ -52,18 +106,18 @@ parser.add_argument('-v', help='verbose mode', action='store_true')
 
 args = parser.parse_args()
 
-# Establish default model for each classifier type
-classifiers = {KNN: KNeighborsClassifier(args.k),
-               LINEAR_SVM: SVC(kernel="linear", C=args.linear_c),
-               RBF_SVM: SVC(gamma=args.gamma, C=1),
-               GAUSSIAN_PROCESS: GaussianProcessClassifier(1.0 * RBF(args.gp_length)),
-               DECISION_TREE: DecisionTreeClassifier(max_depth=args.dt_depth),
-               RANDOM_FOREST: RandomForestClassifier(max_depth=args.rf_depth, n_estimators=10, max_features=1),
-               NEURAL_NET: MLPClassifier(alpha=1, max_iter=1000),
-               ADABOOST: AdaBoostClassifier(),
-               NAIVE_BAYES: GaussianNB(),
-               QUADRATIC_DISCRIMINANT: QuadraticDiscriminantAnalysis()
-               }
+model_codes = args.model_codes.upper()
+for code in model_codes:
+    if code not in MODEL_CODES:
+        parser.print_help()
+        print('\n** Unrecognized model symbol {}.  Valid codes are {}'.format(code, MODEL_CODES))
+        sys.exit(1)
+
+# Instantiate a model for each classifier type
+selected_models = [MODEL_NAME[c] for c in model_codes]
+classifiers = {}
+for name in selected_models:
+    classifiers[name] = model_factory(name, args)
 
 # Generate linearly separable dataset:
 X, y = make_classification(n_samples=args.n, n_features=2, n_redundant=0, n_informative=2, random_state=args.seed, n_clusters_per_class=1)
@@ -72,13 +126,18 @@ X += 2 * rng.uniform(size=X.shape)
 linearly_separable = (X, y)
 
 # Create a list of datasets with the linearly separable data plus two others:
-ds_names = [MOONS, CIRCLES, LINEAR] = ['Overlapping crescents', 'Concentric circles', 'Linearly separable']
-datasets = {MOONS: make_moons(n_samples=args.n, noise=0.3, random_state=args.seed),
+ds_names = [LINEAR, MOONS, CIRCLES] = ['Linearly separable', 'Overlapping crescents', 'Concentric circles']
+datasets = {LINEAR: linearly_separable,
+            MOONS: make_moons(n_samples=args.n, noise=0.3, random_state=args.seed),
             CIRCLES: make_circles(n_samples=args.n, noise=0.2, factor=0.5, random_state=args.seed),
-            LINEAR: linearly_separable
             }
 
-figure = plt.figure(figsize=(27, 9))
+rcParams['font.weight'] = 'bold'
+rcParams['axes.labelweight'] = 'bold'
+rcParams['axes.titleweight'] = 'bold'
+
+full_width = (1 + len(selected_models)) * 2
+figure = plt.figure(figsize=(full_width, 9))
 mesh_stepsize = 0.02
 
 # matplotlib plot index ranges from 1 (upper-left) to (# datasets x # classifiers+1) (lower-right)
@@ -110,6 +169,7 @@ for ds_name in ds_names:
     ax = plt.subplot(len(datasets), len(classifiers) + 1, plot_index)
     if dataset_index == 1:
         ax.set_title("Input data")
+    ax.set_ylabel(ds_name)
 
     # Plot the training points
     ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors='k')
@@ -129,7 +189,7 @@ for ds_name in ds_names:
     plot_index += 1
 
     # Iterate over classifiers
-    for name in CLASSIFIERS:
+    for name in selected_models:
         if args.v:
             print('  {}'.format(name))
 
