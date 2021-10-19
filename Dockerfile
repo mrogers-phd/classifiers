@@ -27,7 +27,7 @@ ENV JUPYTER_PATH=$PYTHONPATH
 WORKDIR $HOME
 
 # Jupyter notebooks
-COPY classifiers.ipynb $HOME
+COPY *.ipynb $HOME/
 
 RUN chmod a+rx $HOME/*.*
 

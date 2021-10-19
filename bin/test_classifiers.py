@@ -141,7 +141,7 @@ modelHelp = 'Codes of models to use: %s, or ALL for all of them' % \
             ', '.join(['%s=%s' % (k, MODEL_NAME[k]) for k in MODEL_CODES])
 parser.add_option('-m', dest='models', default=DEFAULT_CODE,
                   help=modelHelp + ' [default: %default]')
-parser.add_option('-p', dest='nprocs', default=1,
+parser.add_option('-p', dest='nprocs', default=multiprocessing.cpu_count(),
                   help='# processors to use [default: %default]', type='int')
 parser.add_option('-S', dest='std', default=False,
                   help='Standardize data [default: %default]', action='store_true')
@@ -224,9 +224,8 @@ for c in selected_models:
 
 if opts.verbose:
     sys.stderr.write('Testing the following models:\n')
-    for e in names:
-        sys.stderr.write('  %s\n' % MODEL_NAME[e])
-
+    sys.stderr.write(', '.join([MODEL_NAME[e] for e in names]))
+    sys.stderr.flush()
 
 accuracy = {}
 sensitivity = {}
@@ -281,11 +280,11 @@ for c in selected_models:
     # Sort models in descending order by balanced accuracy
     ranking = numpy.argsort(accuracy[c])
 
-    print('\n%-40s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+    print('\n%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
           (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
 
     for i in ranking[::-1]:
-        print('%-40s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
+        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
               (names[c][i], accuracy[c][i], sensitivity[c][i], specificity[c][i], ppv[c][i], matthews[c][i], auc[c][i]))
 
     # save the best of each model:
@@ -295,11 +294,11 @@ for c in selected_models:
 
 if len(selected_models) > 1:
     print('\nOverall rankings:')
-    print('%-40s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+    print('%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
           (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
     model_accuracy = [t[1] for t in best]
     ranking = numpy.argsort(model_accuracy)
 
     for i in ranking[::-1]:
-        print('%-40s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' % best[i])
+        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' % best[i])
 
