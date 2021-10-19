@@ -1,8 +1,10 @@
 # Classifier Sandbox
 This repository contains python code for playing with machine learning classifiers.
+It includes two scripts designed to help gain an understanding of how different
+classifiers perform with different data and parameters.
 
 ## Code layout
-The code for demonstrating classifiers is organized as follows:
+The code for demonstrating classifiers is written for Python 3 and is organized as follows:
 
 ### External dependencies
 The scripts rely on the following modules.  Software was confirmed to work on the versions indicated:
@@ -25,8 +27,9 @@ make it easier to demonstrate the code in a Jupyter notebook.  These files are:
 There are a few scripts to help you get started as quickly as possible.
 
 ### Running Jupyter notebooks
-If you do not have the external dependencies listed above, this is probably the simplest
+If you do not have Python 3 or the external dependencies listed above, this is probably the simplest
 way to start:
+
  1. `build_image.sh` builds a Docker image with the required dependencies
  2. `run_image.sh` runs the Docker container and starts a Jupyter notebook
 
@@ -34,6 +37,7 @@ Running the image will kick off a Jupyter notebook with instructions for how to 
 in a web browser such as Chrome.  Simply copy and paste one of the `http:` links into your
 browser and then select one of the notebooks (`*.ipynb`) to get started.
 
+Here is an example of what you can expect to see:
 ```
 $ run_container.sh
 [I 12:51:18.901 NotebookApp] Writing notebook server cookie secret to /home/classifiers/.local/share/jupyter/runtime/notebook_cookie_secret
@@ -145,3 +149,4 @@ sequence conservation scoring methods:
  - `group_1_2_merged.csv` combines all the features from the first two files.
  - `biased_46-way.csv` contains the 46-way data plus an extra, biased column that yields highly accurate but ultimately flawed classifiers.
 
+# Statistical measures
