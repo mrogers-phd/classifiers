@@ -21,7 +21,7 @@ from sklearn.svm import SVC
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
@@ -31,10 +31,10 @@ DATA_NAMES = [LINEAR, MOONS, CIRCLES] = ['Linearly separable', 'Overlapping cres
 
 # Classifier names establish ordering for what follows:
 CLASSIFIERS = [KNN, LINEAR_SVM, RBF_SVM, GAUSSIAN_PROCESS, DECISION_TREE, RANDOM_FOREST,
-         NEURAL_NET, ADABOOST, NAIVE_BAYES, QUADRATIC_DISCRIMINANT] = \
+         NEURAL_NET, ADABOOST, NAIVE_BAYES, QUADRATIC_DISCRIMINANT, GRADIENT_BOOSTING] = \
         ["k-NN", "Linear SVM", "RBF SVM", "Gauss. Proc.", "Dec. Tree", "RF",
-         "Neural Net", "AdaBoost", "Naive Bayes", "QDA"]
-MODEL_CODES = 'KLRPDFNABQ'
+         "Neural Net", "AdaBoost", "Naive Bayes", "QDA", "Grad. Boost"]
+MODEL_CODES = 'KLRPDFNABQG'
 
 MODEL_NAME = {'K': KNN,
               'L': LINEAR_SVM,
@@ -42,13 +42,14 @@ MODEL_NAME = {'K': KNN,
               'P': GAUSSIAN_PROCESS,
               'D': DECISION_TREE,
               'F': RANDOM_FOREST,
+              'G': GRADIENT_BOOSTING,
               'N': NEURAL_NET,
               'A': ADABOOST,
               'B': NAIVE_BAYES,
               'Q': QUADRATIC_DISCRIMINANT,
               }
 
-MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA'
+MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA/G=Grad. Boost'
 
 
 def compare_classifiers(datasets, classifiers, random_seed, output, verbose):
@@ -175,7 +176,7 @@ def generate_datasets(num_samples, random_seed):
     return result
 
 
-def model_factory(model_name, k=3, linear_c=0.025, gamma=2.0, gp_length=1.0, dt_depth=5, rf_depth=5, n_estimators=10):
+def model_factory(model_name, k=3, linear_c=0.025, gamma=2.0, gp_length=1.0, dt_depth=5, rf_depth=5, gb_depth=3, n_estimators=10):
     """Return a model of the appropriate type for the given model name."""
     if model_name == KNN:
         return KNeighborsClassifier(k)
@@ -189,6 +190,8 @@ def model_factory(model_name, k=3, linear_c=0.025, gamma=2.0, gp_length=1.0, dt_
         return DecisionTreeClassifier(max_depth=dt_depth)
     elif model_name == RANDOM_FOREST:
         return RandomForestClassifier(max_depth=rf_depth, n_estimators=n_estimators, max_features=1)
+    elif model_name == GRADIENT_BOOSTING:
+        return GradientBoostingClassifier(max_depth=gb_depth, n_estimators=n_estimators, max_features=1)
     elif model_name == NEURAL_NET:
         return MLPClassifier(alpha=1, max_iter=1000)
     elif model_name == ADABOOST:

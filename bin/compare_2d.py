@@ -33,6 +33,7 @@ Possible models are:
     A = [A]daBoost
     B = Naive [B]ayes
     Q = [Q]uadratic discriminant
+    G = [G]radient boosting
 """
 
 MODEL_HELP = 'K=k-NN; L=Lin. SVM; R=RBF SVM; P=Gauss.; D=D-tree; F=Rand. Forest; N=Neural net; A=AdaBoost; B=Naive Bayes; Q=QDA'
@@ -40,6 +41,7 @@ MODEL_HELP = 'K=k-NN; L=Lin. SVM; R=RBF SVM; P=Gauss.; D=D-tree; F=Rand. Forest;
 parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=CombinedFormatter)
 parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
 parser.add_argument('-e', dest='n_estimators', help='Number of estimators for random forest', type=int, default=10)
+parser.add_argument('-g', dest='gb_depth', help='Gradient boosting tree depth', type=int, default=3)
 parser.add_argument('-k', help='k-NN parameter', type=int, default=3)
 parser.add_argument('-m', dest='model_codes', help='Models to compare ' + MODEL_HELP, default=MODEL_CODES)
 parser.add_argument('-n', help='Number of samples in dataset', type=int, default=100)
@@ -65,13 +67,14 @@ selected_models = [MODEL_NAME[c] for c in model_codes]
 classifiers = {}
 for name in selected_models:
     classifiers[name] = model_factory(name,
-                                      args.k,
-                                      args.linear_c,
-                                      args.gamma,
-                                      args.gp_length,
-                                      args.dt_depth,
-                                      args.rf_depth,
-                                      args.n_estimators)
+                                      k=args.k,
+                                      linear_c=args.linear_c,
+                                      gamma=args.gamma,
+                                      gp_length=args.gp_length,
+                                      dt_depth=args.dt_depth,
+                                      rf_depth=args.rf_depth,
+                                      gb_depth=args.gb_depth,
+                                      n_estimators=args.n_estimators)
 
 # Generate three datasets for testing
 datasets = generate_datasets(args.n, args.seed)
