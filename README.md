@@ -26,20 +26,22 @@ make it easier to demonstrate the code in a Jupyter notebook.  These files are:
 ## Quick Start
 There are a few scripts to help you get started as quickly as possible.
 
-### Running Jupyter notebooks
+### Running in Docker
 If you do not have Python 3 or the external dependencies listed above, this is probably the simplest
 way to start:
 
  1. `build_image.sh` builds a Docker image with the required dependencies
- 2. `run_container.sh` runs the Docker container and starts a Jupyter notebook
+ 2. `run_notebook.sh` runs the Docker container in a Jupyter notebook
+ 3. `run_container.sh` runs the Docker container in a shell
 
+#### Using the Jupyter notebook
 Running the image will kick off a Jupyter notebook with instructions for how to view it
 in a web browser such as Chrome.  Simply copy and paste one of the `http:` links into your
 browser and then select one of the notebooks (`*.ipynb`) to get started.
 
 Here is an example of what you can expect to see:
 ```
-$ run_container.sh
+$ run_notebook.sh
 [I 12:51:18.901 NotebookApp] Writing notebook server cookie secret to /home/classifiers/.local/share/jupyter/runtime/notebook_cookie_secret
 [I 12:51:19.115 NotebookApp] Serving notebooks from local directory: /home/classifiers
 [I 12:51:19.115 NotebookApp] Jupyter Notebook 6.4.4 is running at:
@@ -55,6 +57,36 @@ $ run_container.sh
      or http://127.0.0.1:8888/?token=7324a10ee00ccc453aa6da75bbd8771b38393606a7afeebe
 ```
 
+#### Using the Docker shell
+There are notebooks for both the 2D and high-dimensional data examples, but in general it is easier
+to run the high-dimensional script from the shell.
+
+Here is an example of what you can expect to see:
+```
+$ run_container.sh
+root@c96bcb434afc:~# test_classifiers.py data/group_1_46-way.csv -v
+Using 3 CPUs
+Data: ClassifierData with 8 features and 2 labels
+Testing the following models:
+  Gradient Boosting
+running Gradient Boosting on 6 settings......
+
+                              	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Gradient Boosting (N=64)      	0.834	0.849	0.820	0.825	0.669	0.908
+Gradient Boosting (N=32)      	0.833	0.845	0.822	0.826	0.667	0.907
+Gradient Boosting (N=16)      	0.832	0.842	0.822	0.826	0.665	0.902
+Gradient Boosting (N=8)       	0.828	0.835	0.821	0.824	0.657	0.892
+Gradient Boosting (N=4)       	0.827	0.833	0.821	0.823	0.653	0.886
+Gradient Boosting (N=2)       	0.817	0.818	0.816	0.817	0.635	0.869
+root@c96bcb434afc:~#
+```
+
+**Note:** _currently the scripts are not set up to allow the Docker container to render images
+to your screen.  The solutions for allowing a container access to the host's DISPLAY were too
+involved for a simple demonstration.  If you wish to display the 2D results outside of a Jupyter
+notebook, the best course is to install the appropriate modules on your host computer and run
+everything from the command line as described below._
+
 ### Running scripts from the command line
 If the external dependencies are already on your machine, then you can run the scripts directly
 from the command line.  This will require an update to your `PYTHONPATH` and `PATH` variables
@@ -62,6 +94,15 @@ to include the `bin` and `shared` directories in your paths.  For convenience, t
 `setup_env.sh` has been included:
 ```
 . ./setup_env.sh
+```
+
+At this point, running the scripts should be a simple matter of entering the script on the command line:
+```
+$ test_classifiers.py data/group_2_100-way.csv -v
+```
+or
+```
+$ compare_2d.py 
 ```
 
 ## 2-D dataset comparisons
