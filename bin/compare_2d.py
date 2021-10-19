@@ -14,6 +14,10 @@ import sys
 
 from comparison_utils import *
 
+# Force argparse to show description as written and default values for help
+class CombinedFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
+    pass
+
 DESCRIPTION = """
 This script provides a comparison across ten different kinds of classifiers
 using random two-dimensional data.
@@ -31,9 +35,9 @@ Possible models are:
     Q = [Q]uadratic discriminant
 """
 
-MODEL_HELP = 'K=k-NN/L=Lin. SVM/R=RBF SVM/P=Gauss./D=D-tree/F=Rand. Forest/N=Neural net/A=AdaBoost/B=Naive Bayes/Q=QDA'
+MODEL_HELP = 'K=k-NN; L=Lin. SVM; R=RBF SVM; P=Gauss.; D=D-tree; F=Rand. Forest; N=Neural net; A=AdaBoost; B=Naive Bayes; Q=QDA'
 
-parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=CombinedFormatter)
 parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
 parser.add_argument('-e', dest='n_estimators', help='Number of estimators for random forest', type=int, default=10)
 parser.add_argument('-k', help='k-NN parameter', type=int, default=3)

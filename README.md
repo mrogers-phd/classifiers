@@ -1,14 +1,67 @@
 # Classifier Sandbox
 This repository contains python code for playing with machine learning classifiers.
 
-## Dependencies
-The scripts rely on two modules.  Software was confirmed to work on the versions indicated:
+## Code layout
+The code for demonstrating classifiers is organized as follows:
+
+### External dependencies
+The scripts rely on the following modules.  Software was confirmed to work on the versions indicated:
  - numpy (1.17.4)
  - matplotlib (3.1.2)
  - scikit-learn (0.23.1)
 
+### Python scripts
+The main scripts reside in the `bin` directory, while the python modules they rely on are in
+the `shared` directory.  The main scripts are:
+ - `bin/compare_2d.py` compares a variety of classifiers using 2-D data
+ - `bin/test_classifiers.py` compares a variety of classifiers on realistic data.
+
+Files in the `shared` directory are not proper python modules; the code has been split out to
+make it easier to demonstrate the code in a Jupyter notebook.  These files are:
+ - `shared/comparison_utils.py` has methods for the `compare_2d.py` script
+ - `shared/sklearn_utils.py` has methods and classes for the `test_classifiers.py` script
+
+## Quick Start
+There are a few scripts to help you get started as quickly as possible.
+
+### Running Jupyter notebooks
+If you do not have the external dependencies listed above, this is probably the simplest
+way to start:
+ 1. `build_image.sh` builds a Docker image with the required dependencies
+ 2. `run_image.sh` runs the Docker container and starts a Jupyter notebook
+
+Running the image will kick off a Jupyter notebook with instructions for how to view it
+in a web browser such as Chrome.  Simply copy and paste one of the `http:` links into your
+browser and then select one of the notebooks (`*.ipynb`) to get started.
+
+```
+$ run_container.sh
+[I 12:51:18.901 NotebookApp] Writing notebook server cookie secret to /home/classifiers/.local/share/jupyter/runtime/notebook_cookie_secret
+[I 12:51:19.115 NotebookApp] Serving notebooks from local directory: /home/classifiers
+[I 12:51:19.115 NotebookApp] Jupyter Notebook 6.4.4 is running at:
+[I 12:51:19.115 NotebookApp] http://5462bb3c1b24:8888/?token=7324a10ee00ccc453aa6da75bbd8771b38393606a7afeebe
+[I 12:51:19.115 NotebookApp]  or http://127.0.0.1:8888/?token=7324a10ee00ccc453aa6da75bbd8771b38393606a7afeebe
+[I 12:51:19.115 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 12:51:19.118 NotebookApp]
+
+    To access the notebook, open this file in a browser:
+        file:///home/classifiers/.local/share/jupyter/runtime/nbserver-1-open.html
+    Or copy and paste one of these URLs:
+        http://5462bb3c1b24:8888/?token=7324a10ee00ccc453aa6da75bbd8771b38393606a7afeebe
+     or http://127.0.0.1:8888/?token=7324a10ee00ccc453aa6da75bbd8771b38393606a7afeebe
+```
+
+### Running scripts from the command line
+If the external dependencies are already on your machine, then you can run the scripts directly
+from the command line.  This will require an update to your `PYTHONPATH` and `PATH` variables
+to include the `bin` and `shared` directories in your paths.  For convenience, the script
+`setup_env.sh` has been included:
+```
+. ./setup_env.sh
+```
+
 ## 2-D dataset comparisons
-The first script, `comparison.py`  uses a relatively simple 2-dimensional dataset to compare
+The first script, `compare_2d.py`  uses a relatively simple 2-dimensional dataset to compare
 the performance of different classifiers.  It was pulled from
 [an example scikit-learn website](https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html)
 originally written by Gaël Varoquaux and Andreas Müller.
@@ -18,13 +71,13 @@ and to provide control over which models to compare.
 There are default values for all models, so it is possible to try the script using simply:
 
 ```
-$ comparison.py
+$ compare_2d.py
 ```
 
 The full set of options is available in the online help:
 ```
-$ comparison.py -h
-usage: comparison.py [-h] [-d DT_DEPTH] [-k K] [-m MODEL_CODES] [-n N] [-r RF_DEPTH] [-s SEED] [-G GAMMA] [-L LINEAR_C] [-P GP_LENGTH] [-v]
+$ compare_2d.py -h
+usage: compare_2d.py [-h] [-d DT_DEPTH] [-k K] [-m MODEL_CODES] [-n N] [-r RF_DEPTH] [-s SEED] [-G GAMMA] [-L LINEAR_C] [-P GP_LENGTH] [-v]
 
 This script provides a comparison across ten different kinds of classifiers using random two-dimensional data.
 
