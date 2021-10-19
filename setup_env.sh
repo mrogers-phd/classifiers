@@ -1,3 +1,3 @@
 #! /bin/bash
-export PYTHONPATH=$PYTHONPATH:$PWD/shared
+export PYTHONPATH=$PWD/shared:$PYTHONPATH
 export PATH=$PATH:$PWD/bin

@@ -8,7 +8,7 @@ import time
 
 MODELS = [LINEAR_SVM, RBF_SVM, RANDOM_FOREST, NAIVE_BAYES, DECISION_TREE,
           EXTRA_TREE, ADABOOST, GRADIENT_BOOST, LOGREG] = \
-         ['linear', 'RBF', 'forest', 'bayes', 'dtree', 'extra', 'adaboost', 'gradient', 'logistic']
+         ['Linear SVM', 'RBF SVM', 'Random Forest', 'Naive Bayes', 'Decision Tree', 'Extra Trees', 'AdaBoost', 'Gradient Boosting', 'Logistic Regression']
 
 MODEL_CODES = [LS_CODE, RS_CODE, RF_CODE, NB_CODE, DT_CODE, ET_CODE, AB_CODE, GB_CODE, LR_CODE] = 'LRFNDEAGO'
 MODEL_NAME = dict(zip(MODEL_CODES, MODELS))

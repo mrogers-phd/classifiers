@@ -30,7 +30,7 @@ G_VALUES = [10**x for x in range(-3, 1)]
 GVAL_STRING = ','.join(['%.3g' % x for x in G_VALUES])
 
 # Default # trees in random forest (RF, ET, GB models)
-T_VALUES = [2**x for x in range(1, 8)]
+T_VALUES = [2**x for x in range(1, 7)]
 TVAL_STRING = ','.join(['%d' % x for x in T_VALUES])
 
 ALL_MODELS = 'ALL'
@@ -58,22 +58,22 @@ def classifier_factory(model_code, **args):
     models = []
     if model_type == LINEAR_SVM:
         for cval in cvalues:
-            names.append('Linear SVM (C=%.5g)' % cval)
+            names.append('%s (C=%.5g)' % (model_type, cval))
             models.append(svm.SVC(kernel='linear', C=cval, probability=True))
     elif model_type == RBF_SVM:
         for gamma in gvalues:
-            names.append('RBF SVM (gamma=%.5g, C=1)' % gamma)
+            names.append('%s (gamma=%.5g, C=1)' % (model_type, gamma))
             models.append(svm.SVC(kernel='rbf', C=1, gamma=gamma, probability=True))
     elif model_type == LOGREG:
         for cval in cvalues:
-            names.append('Logistic regression (C=%.5g)' % cval)
+            names.append('%s (C=%.5g)' % (model_type, cval))
             models.append(linear_model.LogisticRegression(C=cval))
     elif model_type == RANDOM_FOREST:
         for p in tree_sizes:
             if bootstrap:
-                names.append('Random forest (N=%d, %s, bootstrap)' % (p, squal))
+                names.append('%s (N=%d, %s, bootstrap)' % (model_type, p, squal))
             else:
-                names.append('Random forest (N=%d, %s)' % (p, squal))
+                names.append('%s (N=%d, %s)' % (model_type, p, squal))
             models.append(ensemble.RandomForestClassifier(n_estimators=p,
                                                           bootstrap=bootstrap,
                                                           criterion=squal,
@@ -82,9 +82,9 @@ def classifier_factory(model_code, **args):
     elif model_type == EXTRA_TREE:
         for p in tree_sizes:
             if bootstrap:
-                names.append('Extra trees (N=%d, %s, bootstrap)' % (p, squal))
+                names.append('%s (N=%d, %s, bootstrap)' % (model_type, p, squal))
             else:
-                names.append('Extra trees (N=%d, %s)' % (p, squal))
+                names.append('%s (N=%d, %s)' % (model_type, p, squal))
             models.append(ensemble.ExtraTreesClassifier(n_estimators=p,
                                                         bootstrap=bootstrap,
                                                         criterion=squal,
@@ -92,17 +92,17 @@ def classifier_factory(model_code, **args):
                                                         n_jobs=nprocs))
     elif model_type == ADABOOST:
         for p in tree_sizes:
-            names.append('Adaboost (N=%d)' % p)
+            names.append('%s (N=%d)' % (model_type, p))
             models.append(ensemble.AdaBoostClassifier(n_estimators=p, random_state=1))
     elif model_type == GRADIENT_BOOST:
         for p in tree_sizes:      # number of boosting stages
-            names.append('Gradient boosting (N=%d)' % p)
+            names.append('%s (N=%d)' % (model_type, p))
             models.append(ensemble.GradientBoostingClassifier(n_estimators=p, max_depth=depth, subsample=0.5))
     elif model_type == NAIVE_BAYES:
-        names.append('Naive Bayes')
+        names.append(model_type)
         models.append(naive_bayes.GaussianNB())
     elif model_type == DECISION_TREE:
-        names.append('Decision Tree')
+        names.append(model_type)
         models.append(tree.DecisionTreeClassifier(random_state=1))
     else:
         raise ValueError('Unrecognized model type: {}'.format(model_type))
@@ -179,8 +179,8 @@ if len(args) != MIN_ARGS:
 if opts.models.upper() == ALL_MODELS:
     opts.models = MODEL_CODES
 
-selected_models = set(opts.models.upper())
-invalid = selected_models - set(MODEL_CODES)
+selected_models = opts.models.upper()
+invalid = set(selected_models) - set(MODEL_CODES)
 if invalid:
     parser.print_help()
     sys.stderr.write('\nInvalid model codes: %s\n' % ','.join(invalid))
@@ -205,12 +205,13 @@ DATA = load_csv(csv_file)
 
 if opts.verbose:
     sys.stderr.write('Data: %s\n' % DATA)
-    sys.stderr.write('Selected models: %s\n' % ','.join(selected_models))
 
 # set the method(s) to test ...
-names = []
-models = []
+names = {}
+models = {}
 for c in selected_models:
+    names[c] = []
+    models[c] = []
     # Factory returns a list of model names and a list of associated models
     n, m = classifier_factory(c, cvalues=c_values, gamma=gamma_values, trees=tree_sizes,
                               bootstrap=opts.bootstrap,
@@ -218,68 +219,87 @@ for c in selected_models:
                               depth=opts.depth,
                               nprocs=opts.nprocs,
                               verbose=opts.verbose)
-    names.extend(n)
-    models.extend(m)
+    names[c].extend(n)
+    models[c].extend(m)
 
 if opts.verbose:
     sys.stderr.write('Testing the following models:\n')
     for e in names:
-        sys.stderr.write('  %s\n' % e)
+        sys.stderr.write('  %s\n' % MODEL_NAME[e])
 
-accuracy = []
-sensitivity = []
-specificity = []
-auc = []
-matthews = []
-ppv = []
+
+accuracy = {}
+sensitivity = {}
+specificity = {}
+auc = {}
+matthews = {}
+ppv = {}
+
+# Iterate over each model type:
 iter_range = range(opts.niter)
+for c in selected_models:
+    accuracy[c] = []
+    sensitivity[c] = []
+    specificity[c] = []
+    auc[c] = []
+    matthews[c] = []
+    ppv[c] = []
 
-# Iterate over each model/parameter combination:
-for k in range(len(names)):
-    name = names[k]
-    MODEL = models[k]
-    if opts.verbose:
-        sys.stderr.write('%s\n' % time_string(name))
+    # Iterate over each parameter combination:
+    for k in range(len(names[c])):
+        name = names[c][k]
+        MODEL = models[c][k]
 
-    if opts.nprocs > 1:
-        MP = multiprocessing.Pool(processes=opts.nprocs)
-        results = MP.map(run_iteration, iter_range)
-        MP.terminate()
-    else:
-        results = [r for r in map(run_iteration, iter_range)]
+        if opts.nprocs > 1:
+            MP = multiprocessing.Pool(processes=opts.nprocs)
+            results = MP.map(run_iteration, iter_range)
+            MP.terminate()
+        else:
+            results = [r for r in map(run_iteration, iter_range)]
 
-    # Obtain statistics for current model/parameter setting
-    scores = [results[j].accuracy() for j in iter_range]
-    accuracy.append(numpy.mean(scores))
+        # Obtain statistics for current model/parameter setting
+        scores = [results[j].accuracy() for j in iter_range]
+        accuracy[c].append(numpy.mean(scores))
 
-    scores = [results[j].sensitivity() for j in iter_range]
-    sensitivity.append(numpy.mean(scores))
+        scores = [results[j].sensitivity() for j in iter_range]
+        sensitivity[c].append(numpy.mean(scores))
 
-    scores = [results[j].specificity() for j in iter_range]
-    specificity.append(numpy.mean(scores))
+        scores = [results[j].specificity() for j in iter_range]
+        specificity[c].append(numpy.mean(scores))
 
-    scores = [results[j].matthews() for j in iter_range]
-    matthews.append(numpy.mean(scores))
+        scores = [results[j].matthews() for j in iter_range]
+        matthews[c].append(numpy.mean(scores))
 
-    scores = [results[j].auc() for j in iter_range]
-    auc.append(numpy.mean(scores))
+        scores = [results[j].auc() for j in iter_range]
+        auc[c].append(numpy.mean(scores))
 
-    scores = [results[j].ppv() for j in iter_range]
-    ppv.append(numpy.mean(scores))
+        scores = [results[j].ppv() for j in iter_range]
+        ppv[c].append(numpy.mean(scores))
 
-    if opts.verbose:
-        sys.stderr.write('%s %.3f\n' % (name, accuracy[-1]))
+best = []
+for c in selected_models:
+    # Sort models in descending order by balanced accuracy
+    ranking = numpy.argsort(accuracy[c])
 
-# Sort models in descending order by balanced accuracy
-ranking = numpy.argsort(accuracy)
+    print('\n%-40s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+          (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
 
-if opts.verbose:
-    sys.stderr.write(time_string('--------\nFinished\n'))
+    for i in ranking[::-1]:
+        print('%-40s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
+              (names[c][i], accuracy[c][i], sensitivity[c][i], specificity[c][i], ppv[c][i], matthews[c][i], auc[c][i]))
 
-print('\nFinal rankings for %s:' % os.path.basename(csv_file))
-print('%-40s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
-      ('Model', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
+    # save the best of each model:
+    k = ranking[-1]
+    stats_tuple = (names[c][k], accuracy[c][k], sensitivity[c][k], specificity[c][k], ppv[c][k], matthews[c][k], auc[c][k])
+    best.append(stats_tuple)
 
-for i in ranking[::-1]:
-    print('%-40s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
-          (names[i], accuracy[i], sensitivity[i], specificity[i], ppv[i], matthews[i], auc[i]))
+if len(selected_models) > 1:
+    print('\nOverall rankings:')
+    print('%-40s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+          (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
+    model_accuracy = [t[1] for t in best]
+    ranking = numpy.argsort(model_accuracy)
+
+    for i in ranking[::-1]:
+        print('%-40s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' % best[i])
+

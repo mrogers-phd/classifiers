@@ -31,7 +31,7 @@ If you do not have Python 3 or the external dependencies listed above, this is p
 way to start:
 
  1. `build_image.sh` builds a Docker image with the required dependencies
- 2. `run_image.sh` runs the Docker container and starts a Jupyter notebook
+ 2. `run_container.sh` runs the Docker container and starts a Jupyter notebook
 
 Running the image will kick off a Jupyter notebook with instructions for how to view it
 in a web browser such as Chrome.  Simply copy and paste one of the `http:` links into your
@@ -149,4 +149,43 @@ sequence conservation scoring methods:
  - `group_1_2_merged.csv` combines all the features from the first two files.
  - `biased_46-way.csv` contains the 46-way data plus an extra, biased column that yields highly accurate but ultimately flawed classifiers.
 
-# Statistical measures
+## Statistical measures
+ - **Balanced Accuracy**: provides a realistic measure of accuracy regardless of whether the data are balanced.
+ - **Sensitivity**, or true positive rate (TPR), measures a model's ability to recognize the positive class correctly.
+ - **Specificity**, or true negative rate (TNR), measures a model's ability to recognize the negative class correctly.
+ - **Positive Predictive Value (PPV)**: probability that a positive prediction is really positive.
+ - **Matthews Correlation Coefficient (MCC)**: measures the quality of binary predictions with values ranging from -1 to 1.
+ - **Area under the ROC curve (AUC)**: measures how well a classifier ranks examples from strongest positive score to strongest negative score.
+
+## Example
+Below is output from an example run on four different classifiers:
+```
+$ bin/test_classifiers.py -p 8 -m DNOG data/group_1_46-way.csv
+
+                                        	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Decision Tree                           	0.778	0.779	0.777	0.777	0.556	0.778
+
+                                        	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Naive Bayes                             	0.805	0.855	0.756	0.778	0.614	0.886
+
+                                        	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Logistic Regression (C=1)               	0.832	0.857	0.806	0.816	0.665	0.909
+Logistic Regression (C=0.1)             	0.831	0.839	0.824	0.826	0.663	0.902
+Logistic Regression (C=0.01)            	0.823	0.813	0.832	0.829	0.645	0.893
+Logistic Regression (C=0.001)           	0.805	0.796	0.815	0.811	0.611	0.881
+
+                                        	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Gradient Boosting (N=64)                	0.837	0.851	0.823	0.828	0.674	0.908
+Gradient Boosting (N=32)                	0.834	0.844	0.825	0.828	0.669	0.908
+Gradient Boosting (N=16)                	0.831	0.840	0.821	0.824	0.662	0.902
+Gradient Boosting (N=8)                 	0.830	0.836	0.825	0.827	0.661	0.896
+Gradient Boosting (N=4)                 	0.825	0.836	0.815	0.819	0.651	0.887
+Gradient Boosting (N=2)                 	0.821	0.831	0.810	0.814	0.642	0.871
+
+Overall rankings:
+                                        	Acc.  	Sens. 	Spec. 	PPV   	MCC   	AUC
+Gradient Boosting (N=64)                	0.837	0.851	0.823	0.828	0.674	0.908
+Logistic Regression (C=1)               	0.832	0.857	0.806	0.816	0.665	0.909
+Naive Bayes                             	0.805	0.855	0.756	0.778	0.614	0.886
+Decision Tree                           	0.778	0.779	0.777	0.777	0.556	0.778
+```
