@@ -35,6 +35,8 @@ TVAL_STRING = ','.join(['%d' % x for x in T_VALUES])
 
 ALL_MODELS = 'ALL'
 
+DEFAULT_CPUS = max(1, int(multiprocessing.cpu_count()/2))
+
 
 def classifier_factory(model_code, **args):
     """Given a model code, create a list of models for testing,
@@ -141,7 +143,7 @@ modelHelp = 'Codes of models to use: %s, or ALL for all of them' % \
             ', '.join(['%s=%s' % (k, MODEL_NAME[k]) for k in MODEL_CODES])
 parser.add_option('-m', dest='models', default=DEFAULT_CODE,
                   help=modelHelp + ' [default: %default]')
-parser.add_option('-p', dest='nprocs', default=multiprocessing.cpu_count(),
+parser.add_option('-p', dest='nprocs', default=DEFAULT_CPUS,
                   help='# processors to use [default: %default]', type='int')
 parser.add_option('-S', dest='std', default=False,
                   help='Standardize data [default: %default]', action='store_true')
@@ -204,6 +206,7 @@ tree_sizes = [int(x) for x in opts.trees.split(',')]
 DATA = load_csv(csv_file)
 
 if opts.verbose:
+    sys.stderr.write('Using {} CPUs\n'.format(opts.nprocs))
     sys.stderr.write('Data: %s\n' % DATA)
 
 # set the method(s) to test ...
@@ -224,7 +227,7 @@ for c in selected_models:
 
 if opts.verbose:
     sys.stderr.write('Testing the following models:\n')
-    sys.stderr.write(', '.join([MODEL_NAME[e] for e in names]))
+    sys.stderr.write('  {}\n'.format(', '.join([MODEL_NAME[e] for e in names])))
     sys.stderr.flush()
 
 accuracy = {}
@@ -244,10 +247,18 @@ for c in selected_models:
     matthews[c] = []
     ppv[c] = []
 
+    if opts.verbose:
+        sys.stderr.write('running {} on {} settings'.format(MODEL_NAME[c], len(names[c])))
+        sys.stderr.flush()
+
     # Iterate over each parameter combination:
     for k in range(len(names[c])):
         name = names[c][k]
         MODEL = models[c][k]
+
+        if opts.verbose:
+            sys.stderr.write('.')
+            sys.stderr.flush()
 
         if opts.nprocs > 1:
             MP = multiprocessing.Pool(processes=opts.nprocs)
@@ -274,6 +285,10 @@ for c in selected_models:
 
         scores = [results[j].ppv() for j in iter_range]
         ppv[c].append(numpy.mean(scores))
+
+    if opts.verbose:
+        sys.stderr.write('\n')
+        sys.stderr.flush()
 
 best = []
 for c in selected_models:
