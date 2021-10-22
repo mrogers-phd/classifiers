@@ -294,15 +294,20 @@ def cross_validation(model, data, labels, nfolds=5, **args):
     # cvFolds = sklearn.model_selection.StratifiedKFold(labels, nfolds, **args)
     cvFolds = stratified_folds(labels, nfolds)
 
-    result = Results()
+    test_results = Results()
+    train_results = Results()
     ctr = 0
     # train, test are lists of array indexes
     for (train, test) in cvFolds:
         ctr += 1
         model.fit(data[train], labels[train])
-        df = df_factory(model, data[test])
-        result.add(ctr, df, labels[test])
-    return result
+        # training results
+        train_df = df_factory(model, data[train])
+        train_results.add(ctr, train_df, labels[train])
+        # test results
+        test_df = df_factory(model, data[test])
+        test_results.add(ctr, test_df, labels[test])
+    return (train_results, test_results)
 
 
 def df_factory(model, data):

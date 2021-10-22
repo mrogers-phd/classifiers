@@ -230,6 +230,7 @@ if opts.verbose:
     sys.stderr.write('  {}\n'.format(', '.join([MODEL_NAME[e] for e in names])))
     sys.stderr.flush()
 
+train_accuracy = {}
 accuracy = {}
 sensitivity = {}
 specificity = {}
@@ -240,6 +241,7 @@ ppv = {}
 # Iterate over each model type:
 iter_range = range(opts.niter)
 for c in selected_models:
+    train_accuracy[c] = []
     accuracy[c] = []
     sensitivity[c] = []
     specificity[c] = []
@@ -262,28 +264,31 @@ for c in selected_models:
 
         if opts.nprocs > 1:
             MP = multiprocessing.Pool(processes=opts.nprocs)
-            results = MP.map(run_iteration, iter_range)
+            pairs = MP.map(run_iteration, iter_range)
             MP.terminate()
         else:
-            results = [r for r in map(run_iteration, iter_range)]
+            pairs = [r for r in map(run_iteration, iter_range)]
 
         # Obtain statistics for current model/parameter setting
-        scores = [results[j].accuracy() for j in iter_range]
+        scores = [pairs[j][0].accuracy() for j in iter_range]
+        train_accuracy[c].append(numpy.mean(scores))
+
+        scores = [pairs[j][1].accuracy() for j in iter_range]
         accuracy[c].append(numpy.mean(scores))
 
-        scores = [results[j].sensitivity() for j in iter_range]
+        scores = [pairs[j][1].sensitivity() for j in iter_range]
         sensitivity[c].append(numpy.mean(scores))
 
-        scores = [results[j].specificity() for j in iter_range]
+        scores = [pairs[j][1].specificity() for j in iter_range]
         specificity[c].append(numpy.mean(scores))
 
-        scores = [results[j].matthews() for j in iter_range]
+        scores = [pairs[j][1].matthews() for j in iter_range]
         matthews[c].append(numpy.mean(scores))
 
-        scores = [results[j].auc() for j in iter_range]
+        scores = [pairs[j][1].auc() for j in iter_range]
         auc[c].append(numpy.mean(scores))
 
-        scores = [results[j].ppv() for j in iter_range]
+        scores = [pairs[j][1].ppv() for j in iter_range]
         ppv[c].append(numpy.mean(scores))
 
     if opts.verbose:
@@ -295,25 +300,25 @@ for c in selected_models:
     # Sort models in descending order by balanced accuracy
     ranking = numpy.argsort(accuracy[c])
 
-    print('\n%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
-          (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
+    print('\n%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+          (' ', 'TrnAcc', 'TstAcc', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
 
     for i in ranking[::-1]:
-        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
-              (names[c][i], accuracy[c][i], sensitivity[c][i], specificity[c][i], ppv[c][i], matthews[c][i], auc[c][i]))
+        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' %
+              (names[c][i], train_accuracy[c][i], accuracy[c][i], sensitivity[c][i], specificity[c][i], ppv[c][i], matthews[c][i], auc[c][i]))
 
     # save the best of each model:
     k = ranking[-1]
-    stats_tuple = (names[c][k], accuracy[c][k], sensitivity[c][k], specificity[c][k], ppv[c][k], matthews[c][k], auc[c][k])
+    stats_tuple = (names[c][k], train_accuracy[c][k], accuracy[c][k], sensitivity[c][k], specificity[c][k], ppv[c][k], matthews[c][k], auc[c][k])
     best.append(stats_tuple)
 
 if len(selected_models) > 1:
     print('\nOverall rankings:')
-    print('%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
-          (' ', 'Acc.', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
+    print('%-30s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s\t%-6s' %
+          (' ', 'TrnAcc', 'TstAcc', 'Sens.', 'Spec.', 'PPV', 'MCC', 'AUC'))
     model_accuracy = [t[1] for t in best]
     ranking = numpy.argsort(model_accuracy)
 
     for i in ranking[::-1]:
-        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' % best[i])
+        print('%-30s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f' % best[i])
 

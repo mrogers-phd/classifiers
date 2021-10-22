@@ -61,7 +61,8 @@ def compare_classifiers(datasets, classifiers, random_seed, output, verbose):
     rcParams['axes.titleweight'] = 'bold'
 
     full_width = (1 + len(classifiers)) * 2
-    figure = plt.figure(figsize=(full_width, 9))
+    full_height = 3 * len(datasets)
+    figure = plt.figure(figsize=(full_width, full_height))
 
     # Constant for generating meshgrids for all data plots
     mesh_stepsize = 0.02
@@ -172,6 +173,12 @@ def generate_datasets(num_samples, random_seed):
               MOONS: make_moons(n_samples=num_samples, noise=0.3, random_state=random_seed),
               CIRCLES: make_circles(n_samples=num_samples, noise=0.2, factor=0.5, random_state=random_seed),
              }
+
+    # Hack to generate a csv version of data:
+    #features = linearly_separable[0]
+    #labels = linearly_separable[1]
+    #for i in range(len(features)):
+    #    print('{},{}'.format(2*labels[i]-1, ','.join(['%.4f'%x for x in features[i]])))
 
     return result
 
