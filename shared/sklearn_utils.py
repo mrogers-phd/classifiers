@@ -153,6 +153,10 @@ class Results(object):
             result[k] = sklearn.metrics.roc_auc_score(self.labelDict[k], self.dfDict[k])
         return result
 
+    def balanced_accuracy(self, verbose=False):
+        """Compute the balanced accuracy for the results represented in the instance."""
+        return balanced_accuracy(self.df, self.labels, verbose=True, threshold=self.threshold)
+
     def compute(self, metric):
         """Factory single-source method for returning statistics.  NOTE: does not include
         AUC score since it relies on sklearn.metrics and cannot be pickled."""
@@ -235,6 +239,15 @@ class Results(object):
 
 
 def accuracy(df, given, verbose=False, threshold=None):
+    """Computes balanced accuracy for a given TP, TN, FP and FN rate."""
+    (TP, TN, FP, FN) = confusion_matrix(df, given, verbose=verbose, threshold=threshold)
+    numer = TP + TN
+    denom = TP + TN + FP + FN
+    result = float(numer)/denom
+    return result
+
+
+def balanced_accuracy(df, given, verbose=False, threshold=None):
     """Computes balanced accuracy for a given TP, TN, FP and FN rate."""
     (TP, TN, FP, FN) = confusion_matrix(df, given, verbose=verbose, threshold=threshold)
     denom1 = TP + FN
