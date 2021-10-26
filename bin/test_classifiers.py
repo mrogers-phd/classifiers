@@ -35,8 +35,6 @@ TVAL_STRING = ','.join(['%d' % x for x in T_VALUES])
 
 ALL_MODELS = 'ALL'
 
-DEFAULT_CPUS = max(1, int(multiprocessing.cpu_count()/2))
-
 
 def classifier_factory(model_code, **args):
     """Given a model code, create a list of models for testing,
@@ -45,11 +43,9 @@ def classifier_factory(model_code, **args):
     :param str model_code: single character representing an sklearn classifier type
     """
     cvalues = args.get('cvalues', C_VALUES)
-    bootstrap = args.get('bootstrap', False)
     gvalues = args.get('gamma', G_VALUES)
-    nprocs = args.get('nprocs', 1)
+    nprocs = args.get('nprocs', multiprocessing.cpu_count())
     depth = args.get('depth', 1)
-    squal = args.get('splitqual', GINI_TYPE)
     tree_sizes = args.get('trees', T_VALUES)
     verbose = args.get('verbose', False)
 
@@ -72,24 +68,14 @@ def classifier_factory(model_code, **args):
             models.append(linear_model.LogisticRegression(C=cval))
     elif model_type == RANDOM_FOREST:
         for p in tree_sizes:
-            if bootstrap:
-                names.append('%s (N=%d, %s, bootstrap)' % (model_type, p, squal))
-            else:
-                names.append('%s (N=%d, %s)' % (model_type, p, squal))
+            names.append('%s (N=%d)' % (model_type, p))
             models.append(ensemble.RandomForestClassifier(n_estimators=p,
-                                                          bootstrap=bootstrap,
-                                                          criterion=squal,
                                                           random_state=1,
                                                           n_jobs=nprocs))
     elif model_type == EXTRA_TREE:
         for p in tree_sizes:
-            if bootstrap:
-                names.append('%s (N=%d, %s, bootstrap)' % (model_type, p, squal))
-            else:
-                names.append('%s (N=%d, %s)' % (model_type, p, squal))
+            names.append('%s (N=%d)' % (model_type, p))
             models.append(ensemble.ExtraTreesClassifier(n_estimators=p,
-                                                        bootstrap=bootstrap,
-                                                        criterion=squal,
                                                         random_state=1,
                                                         n_jobs=nprocs))
     elif model_type == ADABOOST:
@@ -112,7 +98,7 @@ def classifier_factory(model_code, **args):
     return names, models
 
 
-def run_iteration(iterId):
+def run_iteration():
     """"Multiprocessing-friendly method that runs a single iteration
     of cross-validation for the current global model."""
     return cross_validation(MODEL, DATA.features, DATA.labels, nfolds=opts.nfolds, shuffle=True)
@@ -120,7 +106,7 @@ def run_iteration(iterId):
 
 def roc_name(s):
     """Converts a model name into an output file name, for ROC curves."""
-    # e.g., 'Random forest (N=1000, gini, bootstrap)'
+    # e.g., 'Random forest (N=1000)'
     result = s.replace(' ', '_')
     result = result.replace('.', 'p')
     for c in '(,=)':
@@ -135,36 +121,29 @@ best on a given data set."""
 
 # Establish command-line options:
 parser = OptionParser(usage=USAGE)
-parser.add_option('-i', dest='niter', default=1,
-                  help='# iterations per classifier [default: %default]', type='int')
 parser.add_option('-n', dest='nfolds', default=5,
                   help='# folds for CV [default: %default]', type='int')
 modelHelp = 'Codes of models to use: %s, or ALL for all of them' % \
             ', '.join(['%s=%s' % (k, MODEL_NAME[k]) for k in MODEL_CODES])
 parser.add_option('-m', dest='models', default=DEFAULT_CODE,
                   help=modelHelp + ' [default: %default]')
-parser.add_option('-p', dest='nprocs', default=DEFAULT_CPUS,
-                  help='# processors to use [default: %default]', type='int')
 parser.add_option('-S', dest='std', default=False,
                   help='Standardize data [default: %default]', action='store_true')
 parser.add_option('-v', dest='verbose', default=False,
                   help='Verbose mode [default: %default]', action='store_true')
+parser.add_option('--roc', dest='roc', default=False,
+                 help='Write ROC files (score/label pairs) for each model [default: %default]', action='store_true')
 
 svmopt = OptionGroup(parser, 'SVMs')
 svmopt.add_option('-C', dest='cvals', default=CVAL_STRING,
-                  help='CSV list of C-values (SVMs) [default: %default]')
+                  help='comma-separated list of C-values [default: %default]')
 svmopt.add_option('-G', dest='gamma', default=GVAL_STRING,
-                  help='CSV list of gamma values (RBF kernels only) [default: %default]')
+                  help='comma-separated list of gamma values (RBF kernel only) [default: %default]')
 parser.add_option_group(svmopt)
 
-rfopt = OptionGroup(parser, 'Tree-based parameters')
+rfopt = OptionGroup(parser, 'Tree-based classifiers')
 rfopt.add_option('-T', dest='trees', default=TVAL_STRING,
                  help='CSV list of forest sizes [default: %default]')
-rfopt.add_option('-b', dest='bootstrap', default=False,
-                 help='Use bootstrapping [default: %default]', action='store_true')
-rfopt.add_option('--squal', dest='squal', default='gini', help='Criterion (gini/entropy) [default: %default]')
-rfopt.add_option('--roc', dest='roc', default=False,
-                 help='Write ROC files for each model [default: %default]', action='store_true')
 rfopt.add_option('--depth', dest='depth', default=2,
                  help='Max. depth (gradient boosting only) [default: %default]', type='int')
 parser.add_option_group(rfopt)
@@ -188,11 +167,6 @@ if invalid:
     sys.stderr.write('\nInvalid model codes: %s\n' % ','.join(invalid))
     sys.exit(1)
 
-if opts.nprocs > multiprocessing.cpu_count():
-    sys.stderr.write('You asked for %d processors, but there are only %d available.\n' %
-                     (opts.nprocs, multiprocessing.cpu_count()))
-    sys.exit(1)
-
 csv_file = args[0]
 validate_file(csv_file)
 
@@ -206,7 +180,6 @@ tree_sizes = [int(x) for x in opts.trees.split(',')]
 DATA = load_csv(csv_file)
 
 if opts.verbose:
-    sys.stderr.write('Using {} CPUs\n'.format(opts.nprocs))
     sys.stderr.write('Data: %s\n' % DATA)
 
 # set the method(s) to test ...
@@ -217,11 +190,7 @@ for c in selected_models:
     models[c] = []
     # Factory returns a list of model names and a list of associated models
     n, m = classifier_factory(c, cvalues=c_values, gamma=gamma_values, trees=tree_sizes,
-                              bootstrap=opts.bootstrap,
-                              splitqual=opts.squal,
-                              depth=opts.depth,
-                              nprocs=opts.nprocs,
-                              verbose=opts.verbose)
+                              depth=opts.depth, verbose=opts.verbose)
     names[c].extend(n)
     models[c].extend(m)
 
@@ -241,7 +210,6 @@ ppv = {}
 results = {}
 
 # Iterate over each model type:
-iter_range = range(opts.niter)
 for c in selected_models:
     train_accuracy[c] = []
     accuracy[c] = []
@@ -266,42 +234,20 @@ for c in selected_models:
             sys.stderr.write('.')
             sys.stderr.flush()
 
-        if opts.nprocs > 1:
-            MP = multiprocessing.Pool(processes=opts.nprocs)
-            pairs = MP.map(run_iteration, iter_range)
-            MP.terminate()
-        else:
-            pairs = [r for r in map(run_iteration, iter_range)]
+        train_result, test_result = run_iteration()
 
         # Training accuracy comes from the first half of each pair
-        scores = [pairs[j][0].accuracy() for j in iter_range]
-        train_accuracy[c].append(numpy.mean(scores))
+        train_accuracy[c].append(train_result.accuracy())
 
         # Test statistics come from the second half of each pair
-        scores = [pairs[j][1].accuracy() for j in iter_range]
-        accuracy[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].balanced_accuracy() for j in iter_range]
-        bal_accuracy[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].sensitivity() for j in iter_range]
-        sensitivity[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].specificity() for j in iter_range]
-        specificity[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].matthews() for j in iter_range]
-        matthews[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].auc() for j in iter_range]
-        auc[c].append(numpy.mean(scores))
-
-        scores = [pairs[j][1].ppv() for j in iter_range]
-        ppv[c].append(numpy.mean(scores))
-
-        # Save CV results arbitrarily as first iteration
-        test_results = [p[1] for p in pairs]
-        results[c].append(pairs[0][1])
+        accuracy[c].append(test_result.accuracy())
+        bal_accuracy[c].append(test_result.balanced_accuracy())
+        sensitivity[c].append(test_result.sensitivity())
+        specificity[c].append(test_result.specificity())
+        matthews[c].append(test_result.matthews())
+        auc[c].append(test_result.auc())
+        ppv[c].append(test_result.ppv())
+        results[c].append(test_result)
 
     if opts.verbose:
         sys.stderr.write('\n')
