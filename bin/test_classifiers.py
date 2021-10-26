@@ -64,7 +64,7 @@ def classifier_factory(model_code, **args):
             models.append(svm.SVC(kernel='linear', C=cval, probability=True))
     elif model_type == RBF_SVM:
         for gamma in gvalues:
-            names.append('%s (gamma=%.5g, C=1)' % (model_type, gamma))
+            names.append('%s (gamma=%.5g)' % (model_type, gamma))
             models.append(svm.SVC(kernel='rbf', C=1, gamma=gamma, probability=True))
     elif model_type == LOGREG:
         for cval in cvalues:
@@ -135,7 +135,7 @@ best on a given data set."""
 
 # Establish command-line options:
 parser = OptionParser(usage=USAGE)
-parser.add_option('-i', dest='niter', default=5,
+parser.add_option('-i', dest='niter', default=1,
                   help='# iterations per classifier [default: %default]', type='int')
 parser.add_option('-n', dest='nfolds', default=5,
                   help='# folds for CV [default: %default]', type='int')

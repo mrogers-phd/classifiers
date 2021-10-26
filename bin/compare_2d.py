@@ -38,12 +38,14 @@ Possible models are:
 
 MODEL_HELP = 'K=k-NN; L=Lin. SVM; R=RBF SVM; P=Gauss.; D=D-tree; F=Rand. Forest; N=Neural net; A=AdaBoost; B=Naive Bayes; Q=QDA'
 
+DEFAULT_MODELS = 'LRAFN'
+
 parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=CombinedFormatter)
 parser.add_argument('-d', dest='dt_depth', help='Decision tree depth', type=int, default=5)
 parser.add_argument('-e', dest='n_estimators', help='Number of estimators for random forest', type=int, default=10)
 parser.add_argument('-g', dest='gb_depth', help='Gradient boosting tree depth', type=int, default=3)
 parser.add_argument('-k', help='k-NN parameter', type=int, default=3)
-parser.add_argument('-m', dest='model_codes', help='Models to compare ' + MODEL_HELP, default=MODEL_CODES)
+parser.add_argument('-m', dest='model_codes', help='Models to compare ' + MODEL_HELP, default=DEFAULT_MODELS)
 parser.add_argument('-n', help='Number of samples in dataset', type=int, default=100)
 parser.add_argument('-o', dest='output', help='Render graphics to output file', default=None)
 parser.add_argument('-r', dest='rf_depth', help='Random forest depth', type=int, default=5)
