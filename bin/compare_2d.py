@@ -3,7 +3,7 @@
 # Extended from code by Gaël Varoquaux and Andreas Müller
 #   https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
 #
-# This script provides a comparison across ten different kinds of classifiers
+# This script provides a comparison across eleven different kinds of classifiers
 # using random two-dimensional data.
 #
 import argparse
@@ -19,7 +19,7 @@ class CombinedFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawText
     pass
 
 DESCRIPTION = """
-This script provides a comparison across ten different kinds of classifiers
+This script provides a comparison across eleven different kinds of classifiers
 using random two-dimensional data.
 
 Possible models are:
